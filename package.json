@@ -1,0 +1,19 @@
+{
+  "name": "",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "format": "prettier . -w",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^5.16.11",
+    "cm-chessboard": "^8.11.5",
+    "prettier": "^3.8.0",
+    "prettier-plugin-astro": "^0.14.1",
+    "stockfish": "^17.1.0"
+  }
+}

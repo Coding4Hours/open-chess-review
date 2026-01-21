@@ -1,0 +1,88 @@
+---
+
+---
+
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Astro</title>
+		<style>
+			div.board {
+				float: left;
+				max-width: 500px;
+				width: calc(100vw - 40px);
+				margin-right: 20px;
+				margin-bottom: 20px;
+			}
+			div.board.board-small {
+				max-width: 320px;
+			}
+			div.board.board-large {
+				max-width: 680px;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Open Chess Review</h1>
+		<div id="bestmove">Calculating...</div>
+
+		<div class="board" id="board"></div>
+		<script>
+			import { Chessboard } from "cm-chessboard";
+			import { FEN } from "cm-chessboard/src/model/Position.js";
+			import { RightClickAnnotator } from "cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js";
+
+			import "cm-chessboard/assets/chessboard.css";
+			import "cm-chessboard/assets/extensions/markers/markers.css";
+			import "cm-chessboard/assets/extensions/arrows/arrows.css";
+
+			const board = new Chessboard(document.getElementById("board"), {
+				position: FEN.start,
+				assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
+				extensions: [{ class: RightClickAnnotator }],
+			});
+
+			board.enableSquareSelect((event: Event) => {
+				if (event.type === "primary") {
+					board.removeMarkers();
+					board.removeArrows();
+				}
+			});
+
+			board.enableMoveInput((event: Event) => {
+				if (event.type === "moveInputStarted") {
+					board.removeMarkers();
+					board.removeArrows();
+					return true;
+				}
+
+				if (event.type === "validateMoveInput") return true;
+			});
+		</script>
+		<script is:inline>
+			const bestMoveElement = document.getElementById("bestmove");
+
+			const engine = new Worker("/stockfish/stockfish.js");
+
+			engine.onmessage = (event) => {
+				const message = event.data;
+
+				if (typeof message === "string" && message.startsWith("bestmove")) {
+					const bestMove = message.split(" ")[1];
+					if (bestMoveElement) {
+						bestMoveElement.textContent = bestMove;
+					}
+				}
+			};
+
+			engine.postMessage("uci");
+			engine.postMessage("isready");
+			engine.postMessage("ucinewgame");
+			engine.postMessage("position startpos");
+			engine.postMessage("go depth 15");
+		</script>
+	</body>
+</html>
