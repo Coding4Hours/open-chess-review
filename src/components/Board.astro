@@ -59,7 +59,7 @@
 	function updateEngine() {
 		engine.postMessage("ucinewgame");
 		engine.postMessage(`position fen ${game.fen()}`);
-		engine.postMessage("go depth 30");
+		engine.postMessage("go depth 20");
 
 		engine.postMessage("eval");
 	}
