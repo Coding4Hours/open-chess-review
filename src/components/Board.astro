@@ -39,7 +39,13 @@
 	const engine = new Worker("/stockfish/stockfish.js");
 	engine.onmessage = (event) => {
 		const message = event.data;
-		console.log(message);
+		if (typeof message === "string" && message.includes("Final evaluation")) {
+			const match = message.match(/Final evaluation\s+([+-]?\d+\.?\d*)/);
+			if (match) {
+				const score = match[1];
+				console.log(`Eval: ${score}`);
+			}
+		}
 		if (typeof message === "string" && message.startsWith("bestmove")) {
 			const bestMove = message.split(" ")[1];
 			if (bestMove && bestMove.length >= 4) {
@@ -53,7 +59,9 @@
 	function updateEngine() {
 		engine.postMessage("ucinewgame");
 		engine.postMessage(`position fen ${game.fen()}`);
-		engine.postMessage("go depth 15");
+		engine.postMessage("go depth 30");
+
+		engine.postMessage("eval");
 	}
 
 	const board = new Chessboard(document.getElementById("board"), {
