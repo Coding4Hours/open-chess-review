@@ -4,13 +4,13 @@
 
 <div class="flex flex-wrap gap-5 mb-5 items-start">
   <div
-    class="max-w-[500px] w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-[680px]"
+    class="max-w-125 w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-170"
     id="board"
   >
   </div>
 
   <div
-    class="flex-1 min-w-[250px] flex flex-col gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 font-sans shadow-sm"
+    class="flex-1 min-w-62.5 flex flex-col gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 font-sans shadow-sm"
   >
     <div
       class="text-2xl font-bold text-center text-gray-800 tabular-nums"
@@ -58,10 +58,9 @@
       const cpMatch = message.match(/score cp (-?\d+)/);
       const mateMatch = message.match(/score mate (-?\d+)/);
       const depthMatch = message.match(/depth (\d+)/);
+      const evalDepth = document.getElementById("eval-depth");
 
-      if (depthMatch) {
-        document.getElementById("eval-depth").innerText = depthMatch[1];
-      }
+      if (depthMatch && evalDepth) evalDepth.innerText = depthMatch[1];
 
       let score = 0;
       if (cpMatch) {
@@ -77,9 +76,9 @@
 
       // Update evaluation display
       const evalText = (Math.abs(whiteScore) / 100).toFixed(2);
+      const evalDisplay = document.getElementById("eval-display");
       const sign = whiteScore >= 0 ? "+" : "-";
-      document.getElementById("eval-display").innerText =
-        `Eval: ${sign}${evalText}`;
+      if (evalDisplay) evalDisplay.innerText = `Eval: ${sign}${evalText}`;
 
       positionEvaluations.set(fen, whiteScore);
     }
