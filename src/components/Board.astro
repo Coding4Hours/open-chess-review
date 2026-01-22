@@ -2,135 +2,165 @@
 
 ---
 
-<style>
-	div.board {
-		float: left;
-		max-width: 500px;
-		width: calc(100vw - 40px);
-		margin-right: 20px;
-		margin-bottom: 20px;
-	}
-	div.board.board-small {
-		max-width: 320px;
-	}
-	div.board.board-large {
-		max-width: 680px;
-	}
-</style>
+<div class="flex flex-wrap gap-5 mb-5 items-start">
+  <div
+    class="max-w-[500px] w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-[680px]"
+    id="board"
+  >
+  </div>
 
-<div class="board" id="board"></div>
+  <div
+    class="flex-1 min-w-[250px] flex flex-col gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 font-sans shadow-sm"
+  >
+    <div
+      class="text-2xl font-bold text-center text-gray-800 tabular-nums"
+      id="eval-display"
+    >
+      Eval: 0.00
+    </div>
+
+    <div class="mt-2 text-xs text-gray-400 text-center">
+      Depth: <span id="eval-depth">0</span>
+    </div>
+  </div>
+</div>
+
 <script>
-	import {
-		INPUT_EVENT_TYPE,
-		Chessboard,
-	} from "cm-chessboard/src/Chessboard.js";
-	import { RightClickAnnotator } from "cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js";
-	import { PromotionDialog } from "cm-chessboard/src/extensions/promotion-dialog/PromotionDialog.js";
-	import { ARROW_TYPE } from "cm-chessboard/src/extensions/arrows/Arrows.js";
+  import {
+    INPUT_EVENT_TYPE,
+    Chessboard,
+  } from "cm-chessboard/src/Chessboard.js";
+  import { RightClickAnnotator } from "cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js";
+  import { ARROW_TYPE } from "cm-chessboard/src/extensions/arrows/Arrows.js";
 
-	import "cm-chessboard/assets/chessboard.css";
-	import "cm-chessboard/assets/extensions/markers/markers.css";
-	import "cm-chessboard/assets/extensions/arrows/arrows.css";
+  import "cm-chessboard/assets/chessboard.css";
+  import "cm-chessboard/assets/extensions/markers/markers.css";
+  import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
-	import { Chess } from "chess.js";
+  import { Chess } from "chess.js";
 
-	const game = new Chess();
+  const game = new Chess();
 
-	const engine = new Worker("/stockfish/stockfish.js");
-	engine.onmessage = (event) => {
-		const message = event.data;
-		if (typeof message === "string" && message.includes("Final evaluation")) {
-			const match = message.match(/Final evaluation\s+([+-]?\d+\.?\d*)/);
-			if (match) {
-				const score = match[1];
-				console.log(`Eval: ${score}`);
-			}
-		}
-		if (typeof message === "string" && message.startsWith("bestmove")) {
-			const bestMove = message.split(" ")[1];
-			if (bestMove && bestMove.length >= 4) {
-				const from = bestMove.substring(0, 2);
-				const to = bestMove.substring(2, 4);
-				board.addArrow(ARROW_TYPE.default, from, to);
-			}
-		}
-	};
+  const board = new Chessboard(document.getElementById("board"), {
+    position: game.fen(),
+    assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
+    extensions: [{ class: RightClickAnnotator }],
+  });
+  const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
 
-	function updateEngine() {
-		engine.postMessage("ucinewgame");
-		engine.postMessage(`position fen ${game.fen()}`);
-		engine.postMessage("go depth 20");
+  const engine = new Worker("/stockfish/stockfish.js");
 
-		engine.postMessage("eval");
-	}
+  engine.onmessage = (event) => {
+    const message = event.data;
+    if (typeof message !== "string") return;
 
-	const board = new Chessboard(document.getElementById("board"), {
-		position: game.fen(),
-		assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
-		extensions: [{ class: RightClickAnnotator }, { class: PromotionDialog }],
-	});
+    if (message.startsWith("info") && message.includes("score")) {
+      const cpMatch = message.match(/score cp (-?\d+)/);
+      const mateMatch = message.match(/score mate (-?\d+)/);
+      const depthMatch = message.match(/depth (\d+)/);
 
-	board.enableMoveInput((event) => {
-		switch (event.type) {
-			case INPUT_EVENT_TYPE.moveInputStarted:
-				const pieceColor = event.piece.charAt(0);
-				return game.turn() === pieceColor;
+      if (depthMatch) {
+        document.getElementById("eval-depth").innerText = depthMatch[1];
+      }
 
-			case INPUT_EVENT_TYPE.validateMoveInput:
-				const isPromotion =
-					event.piece.charAt(1) === "p" &&
-					((event.squareTo.charAt(1) === "8" && game.turn() === "w") ||
-						(event.squareTo.charAt(1) === "1" && game.turn() === "b"));
+      let score = 0;
+      if (cpMatch) {
+        score = parseInt(cpMatch[1]);
+      } else if (mateMatch) {
+        const mateIn = parseInt(mateMatch[1]);
+        score = mateIn > 0 ? 10000 - mateIn : -10000 - mateIn;
+      }
 
-				if (isPromotion) {
-					board.showPromotionDialog(event.squareTo, game.turn(), (result) => {
-						if (result && result.piece) {
-							const move = game.move({
-								from: event.squareFrom,
-								to: event.squareTo,
-								promotion: result.piece.charAt(1),
-							});
-							if (move) {
-								board.setPosition(game.fen(), true);
-								updateEngine();
-							}
-						} else {
-							board.setPosition(game.fen(), true);
-						}
-					});
-					return true;
-				}
+      const fen = game.fen();
+      const sideToMove = fen.split(" ")[1];
+      const whiteScore = sideToMove === "w" ? score : -score;
 
-				try {
-					const move = game.move({
-						from: event.squareFrom,
-						to: event.squareTo,
-					});
+      // Update evaluation display
+      const evalText = (Math.abs(whiteScore) / 100).toFixed(2);
+      const sign = whiteScore >= 0 ? "+" : "-";
+      document.getElementById("eval-display").innerText =
+        `Eval: ${sign}${evalText}`;
 
-					if (move) {
-						game.undo();
-						return true;
-					}
-				} catch (e) {
-					return false;
-				}
-				return false;
+      positionEvaluations.set(fen, whiteScore);
+    }
 
-			case INPUT_EVENT_TYPE.moveInputFinished:
-				if (event.legalMove) {
-					board.removeMarkers();
-					board.removeArrows();
-					game.move({
-						from: event.squareFrom,
-						to: event.squareTo,
-					});
+    if (message.startsWith("bestmove")) {
+      const bestMove = message.split(" ")[1];
+      if (bestMove && bestMove.length >= 4) {
+        const from = bestMove.substring(0, 2);
+        const to = bestMove.substring(2, 4);
 
-					board.setPosition(game.fen(), true);
-					updateEngine();
-				}
-				break;
-		}
-	});
+        board.addArrow(ARROW_TYPE.info, from, to);
+      }
+    }
+  };
 
-	updateEngine();
+  function updateEngine() {
+    engine.postMessage("ucinewgame");
+    engine.postMessage(`position fen ${game.fen()}`);
+    engine.postMessage("go depth 20");
+  }
+
+  // board.enableMoveInput((event) => {
+  //   switch (event.type) {
+  //     case INPUT_EVENT_TYPE.moveInputStarted:
+  //       const pieceColor = event.piece.charAt(0);
+  //       return game.turn() === pieceColor;
+
+  //     case INPUT_EVENT_TYPE.validateMoveInput:
+  //       const isPromotion =
+  //         event.piece.charAt(1) === "p" &&
+  //         ((event.squareTo.charAt(1) === "8" && game.turn() === "w") ||
+  //           (event.squareTo.charAt(1) === "1" && game.turn() === "b"));
+
+  //       if (isPromotion) {
+  //         board.showPromotionDialog(event.squareTo, game.turn(), (result) => {
+  //           if (result && result.piece) {
+  //             const move = game.move({
+  //               from: event.squareFrom,
+  //               to: event.squareTo,
+  //               promotion: result.piece.charAt(1),
+  //             });
+  //             if (move) {
+  //               board.setPosition(game.fen(), true);
+  //               updateEngine();
+  //             }
+  //           } else {
+  //             board.setPosition(game.fen(), true);
+  //           }
+  //         });
+  //         return true;
+  //       }
+
+  //       try {
+  //         const move = game.move({
+  //           from: event.squareFrom,
+  //           to: event.squareTo,
+  //         });
+  //         if (move) {
+  //           game.undo();
+  //           return true;
+  //         }
+  //       } catch (e) {
+  //         return false;
+  //       }
+  //       return false;
+
+  //     case INPUT_EVENT_TYPE.moveInputFinished:
+  //       if (event.legalMove) {
+  //         board.removeMarkers();
+  //         board.removeArrows();
+  //         game.move({
+  //           from: event.squareFrom,
+  //           to: event.squareTo,
+  //         });
+
+  //         board.setPosition(game.fen(), true);
+  //         updateEngine();
+  //       }
+  //       break;
+  //   }
+  // });
+
+  updateEngine();
 </script>
