@@ -10,7 +10,10 @@ import { Chess } from "chess.js";
 
 const game = new Chess();
 
-const pgn = localStorage.getItem("pgn") || prompt("give pgn pwease");
+let pgn: string | null = localStorage.getItem("pgn");
+
+while (!pgn) pgn = prompt("give pgn pwease");
+
 localStorage.setItem("pgn", pgn);
 game.loadPgn(pgn);
 
