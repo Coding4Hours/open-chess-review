@@ -1,5 +1,4 @@
 # TODO
-- [ ] animations
 - [ ] Implement move categorization based on evaluation changes
 - [ ] Add custom moves branching
 - [ ] Improve UI/UX
