@@ -7,6 +7,7 @@ import "cm-chessboard/assets/extensions/markers/markers.css";
 import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
+import { classifyMove } from "./move-classification.ts";
 
 const game = new Chess();
 
@@ -17,23 +18,32 @@ while (!pgn) pgn = prompt("give pgn pwease");
 localStorage.setItem("pgn", pgn);
 game.loadPgn(pgn);
 
-// will be used for move categorization
 let data = {
   lastEval: "Calculating...",
   totalMoves: game.history().length,
-  gameHistory: game.history(),
+  moveHistory: game.history(),
   currentIndex: game.history().length - 1,
   depth: localStorage.getItem("depth") || 20,
   movetime: localStorage.getItem("movetime") || 100,
   threads: localStorage.getItem("threads") || 11,
+  fenHistory: [] as string[],
+  positionEvaluations: new Map(), // FEN -> white-relative score (centipawns)
 };
+
+// fen history has stuff now
+const pgnMoves = game.history({ verbose: false }) as string[];
+const tempGame = new Chess();
+data.fenHistory.push(tempGame.fen());
+for (const move of pgnMoves) {
+  tempGame.move(move);
+  data.fenHistory.push(tempGame.fen());
+}
 
 const board = new Chessboard(document.getElementById("board"), {
   position: game.fen(),
   assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
   extensions: [{ class: RightClickAnnotator }],
 });
-const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
 const $ = (query: string) => document.querySelector(query);
 
 const engine = new Worker("/stockfish/stockfish.js");
@@ -66,13 +76,34 @@ engine.onmessage = (event) => {
     const evalDisplay = document.getElementById("eval-display");
     const sign = whiteScore >= 0 ? "+" : "-";
     const evaluation = `${sign}${evalText}`;
-    data.lastEval = evaluation;
     if (evalDisplay) evalDisplay.innerText = `Eval: ${evaluation}`;
 
-    positionEvaluations.set(fen, whiteScore);
+    data.positionEvaluations.set(fen, whiteScore);
   }
 
   if (message.startsWith("bestmove")) {
+    const fenAfter = game.fen();
+    const evalAfter = data.positionEvaluations.get(fenAfter);
+
+    if (evalAfter !== undefined) {
+      const ply = data.currentIndex + 1;
+      if (ply > 0) {
+        const fenBefore = data.fenHistory[ply - 1];
+        const evalBefore = data.positionEvaluations.get(fenBefore);
+
+        if (evalBefore !== undefined) {
+          const isWhiteMove = game.turn() === "b";
+          const classification = classifyMove(
+            evalBefore,
+            evalAfter,
+            isWhiteMove,
+          );
+
+          console.log(`${classification.name}`);
+        }
+      }
+    }
+
     const bestMove = message.split(" ")[1];
     if (bestMove && bestMove.length >= 4) {
       const from = bestMove.substring(0, 2);
@@ -88,7 +119,7 @@ engine.onmessage = (event) => {
 function updateEngine() {
   engine.postMessage("ucinewgame");
   engine.postMessage(
-    `position fen ${game.fen()} moves ${data.gameHistory.join(" ")}`,
+    `position fen ${game.fen()} moves ${data.moveHistory.join(" ")}`,
   );
   engine.postMessage(
     `go depth ${data.depth} movetime ${data.movetime} Threads ${data.threads}`,
@@ -105,9 +136,9 @@ function goBack() {
 }
 
 function goForward() {
-  if (data.currentIndex < data.gameHistory.length - 1) {
+  if (data.currentIndex < data.moveHistory.length - 1) {
     data.currentIndex++;
-    game.move(data.gameHistory[data.currentIndex]);
+    game.move(data.moveHistory[data.currentIndex]);
     board.setPosition(game.fen(), true);
     updateEngine();
   } else {
