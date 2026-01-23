@@ -10,6 +10,8 @@ import { Chess } from "chess.js";
 
 const game = new Chess();
 
+game.loadPgn(prompt("give pgn pwease"));
+
 const board = new Chessboard(document.getElementById("board"), {
   position: game.fen(),
   assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
