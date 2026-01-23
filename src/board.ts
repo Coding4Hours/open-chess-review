@@ -28,6 +28,7 @@ let data = {
   threads: localStorage.getItem("threads") || 11,
   fenHistory: [] as string[],
   positionEvaluations: new Map(), // FEN -> white-relative score (centipawns)
+  engineState: "analyzing" as "analyzing" | "going_back",
 };
 
 // fen history has stuff now
@@ -52,13 +53,19 @@ engine.onmessage = (event) => {
   const message = event.data;
   if (typeof message !== "string") return;
 
+  const currentFen =
+    data.engineState === "going_back"
+      ? data.fenHistory[data.currentIndex]
+      : game.fen();
+
   if (message.startsWith("info") && message.includes("score")) {
     const cpMatch = message.match(/score cp (-?\d+)/);
     const mateMatch = message.match(/score mate (-?\d+)/);
     const depthMatch = message.match(/depth (\d+)/);
     const evalDepth = document.getElementById("eval-depth");
 
-    if (depthMatch && evalDepth) evalDepth.innerText = depthMatch[1];
+    if (depthMatch && evalDepth && data.engineState === "analyzing")
+      evalDepth.innerText = depthMatch[1];
 
     let score = 0;
     if (cpMatch) {
@@ -68,20 +75,27 @@ engine.onmessage = (event) => {
       score = mateIn > 0 ? 10000 - mateIn : -10000 - mateIn;
     }
 
-    const fen = game.fen();
-    const sideToMove = fen.split(" ")[1];
+    const sideToMove = currentFen.split(" ")[1];
     const whiteScore = sideToMove === "w" ? score : -score;
 
-    const evalText = (Math.abs(whiteScore) / 100).toFixed(2);
-    const evalDisplay = document.getElementById("eval-display");
-    const sign = whiteScore >= 0 ? "+" : "-";
-    const evaluation = `${sign}${evalText}`;
-    if (evalDisplay) evalDisplay.innerText = `Eval: ${evaluation}`;
+    if (data.engineState === "analyzing") {
+      const evalText = (Math.abs(whiteScore) / 100).toFixed(2);
+      const evalDisplay = document.getElementById("eval");
+      const sign = whiteScore >= 0 ? "+" : "-";
+      const evaluation = `${sign}${evalText}`;
+      if (evalDisplay) evalDisplay.innerText = `Eval: ${evaluation}`;
+    }
 
-    data.positionEvaluations.set(fen, whiteScore);
+    data.positionEvaluations.set(currentFen, whiteScore);
   }
 
   if (message.startsWith("bestmove")) {
+    if (data.engineState === "going_back") {
+      data.engineState = "analyzing";
+      updateEngine();
+      return;
+    }
+
     const fenAfter = game.fen();
     const evalAfter = data.positionEvaluations.get(fenAfter);
 
@@ -98,8 +112,16 @@ engine.onmessage = (event) => {
             evalAfter,
             isWhiteMove,
           );
-
-          console.log(`${classification.name}`);
+          $("#classification").textContent = `${classification.name}`;
+          $("#classification").style.color = `${classification.color}`;
+        } else {
+          data.engineState = "going_back";
+          engine.postMessage("ucinewgame");
+          engine.postMessage(`position fen ${fenBefore}`);
+          engine.postMessage(
+            `go depth ${data.depth} movetime ${data.movetime} Threads ${data.threads}`,
+          );
+          return;
         }
       }
     }
@@ -117,6 +139,7 @@ engine.onmessage = (event) => {
 };
 
 function updateEngine() {
+  data.engineState = "analyzing";
   engine.postMessage("ucinewgame");
   engine.postMessage(
     `position fen ${game.fen()} moves ${data.moveHistory.join(" ")}`,
@@ -127,7 +150,7 @@ function updateEngine() {
 }
 
 function goBack() {
-  if (data.currentIndex >= 0) {
+  if (data.currentIndex > 0) {
     game.undo();
     data.currentIndex--;
     board.setPosition(game.fen(), true);
@@ -141,8 +164,6 @@ function goForward() {
     game.move(data.moveHistory[data.currentIndex]);
     board.setPosition(game.fen(), true);
     updateEngine();
-  } else {
-    console.log("No more moves to redo.");
   }
 }
 
