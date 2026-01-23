@@ -10,14 +10,9 @@ import { Chess } from "chess.js";
 
 const game = new Chess();
 
-game.loadPgn(prompt("give pgn pwease"));
-
-const board = new Chessboard(document.getElementById("board"), {
-  position: game.fen(),
-  assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
-  extensions: [{ class: RightClickAnnotator }],
-});
-const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
+const pgn = prompt("give pgn pwease") || localStorage.getItem("pgn");
+localStorage.setItem("pgn", pgn);
+game.loadPgn(pgn);
 
 // will be used for move categorization
 let data = {
@@ -25,8 +20,17 @@ let data = {
   totalMoves: game.history().length,
   gameHistory: game.history(),
   currentIndex: game.history().length - 1,
+  depth: localStorage.getItem("depth") || 20,
+  movetime: localStorage.getItem("movetime") || 1000,
+  threads: localStorage.getItem("threads") || 11,
 };
 
+const board = new Chessboard(document.getElementById("board"), {
+  position: game.fen(),
+  assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
+  extensions: [{ class: RightClickAnnotator }],
+});
+const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
 const $ = (query: string) => document.querySelector(query);
 
 const engine = new Worker("/stockfish/stockfish.js");
@@ -83,7 +87,9 @@ function updateEngine() {
   engine.postMessage(
     `position fen ${game.fen()} moves ${data.gameHistory.join(" ")}`,
   );
-  engine.postMessage("go depth 20");
+  engine.postMessage(
+    `go depth ${data.depth} movetime ${data.movetime} Threads ${data.threads}`,
+  );
 }
 
 function goBack() {
