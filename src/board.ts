@@ -20,10 +20,14 @@ const board = new Chessboard(document.getElementById("board"), {
 const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
 
 // will be used for move categorization
-let lastEval = null;
-const totalMoves = game.history().length;
-const gameHistory = game.history();
-let currentIndex = game.history().length - 1;
+let data = {
+  lastEval: "Calculating...",
+  totalMoves: game.history().length,
+  gameHistory: game.history(),
+  currentIndex: game.history().length - 1,
+};
+
+const $ = (query: string) => document.querySelector(query);
 
 const engine = new Worker("/stockfish/stockfish.js");
 
@@ -55,7 +59,7 @@ engine.onmessage = (event) => {
     const evalDisplay = document.getElementById("eval-display");
     const sign = whiteScore >= 0 ? "+" : "-";
     const evaluation = `${sign}${evalText}`;
-    lastEval = evaluation;
+    data.lastEval = evaluation;
     if (evalDisplay) evalDisplay.innerText = `Eval: ${evaluation}`;
 
     positionEvaluations.set(fen, whiteScore);
@@ -76,29 +80,35 @@ engine.onmessage = (event) => {
 
 function updateEngine() {
   engine.postMessage("ucinewgame");
-  engine.postMessage(`position fen ${game.fen()}`);
+  engine.postMessage(
+    `position fen ${game.fen()} moves ${data.gameHistory.join(" ")}`,
+  );
   engine.postMessage("go depth 20");
 }
 
-window.goBack = () => {
-  if (currentIndex >= 0) {
+function goBack() {
+  if (data.currentIndex >= 0) {
     game.undo();
-    currentIndex--;
+    data.currentIndex--;
     board.setPosition(game.fen());
     updateEngine();
   }
-};
+}
 
-window.goForward = () => {
-  if (currentIndex < gameHistory.length - 1) {
-    currentIndex++;
-    game.move(gameHistory[currentIndex]);
+function goForward() {
+  if (data.currentIndex < data.gameHistory.length - 1) {
+    data.currentIndex++;
+    game.move(data.gameHistory[data.currentIndex]);
     board.setPosition(game.fen());
     updateEngine();
   } else {
     console.log("No more moves to redo.");
   }
-};
+}
+
+$("#go-back")?.addEventListener("click", goBack);
+$("#go-forward")?.addEventListener("click", goForward);
+
 engine.postMessage("uci");
 engine.postMessage("isready");
 updateEngine();
