@@ -4,4 +4,5 @@
 - [ ] Improve UI/UX
 - [ ] Add support for multiple engines
 - [x] Add support for PGN import/export
-- [ ] Add support for move history (HIGH PRIORITY)
+- [x] Add support for move history (HIGH PRIORITY)
+- [ ] for some reason stockfish lite wont work so only the huge version works

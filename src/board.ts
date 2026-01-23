@@ -18,8 +18,12 @@ const board = new Chessboard(document.getElementById("board"), {
   extensions: [{ class: RightClickAnnotator }],
 });
 const positionEvaluations = new Map(); // FEN -> white-relative score (centipawns)
+
 // will be used for move categorization
 let lastEval = null;
+const totalMoves = game.history().length;
+const gameHistory = game.history();
+let currentIndex = game.history().length - 1;
 
 const engine = new Worker("/stockfish/stockfish.js");
 
@@ -63,6 +67,8 @@ engine.onmessage = (event) => {
       const from = bestMove.substring(0, 2);
       const to = bestMove.substring(2, 4);
 
+      board.removeArrows();
+
       board.addArrow(ARROW_TYPE.info, from, to);
     }
   }
@@ -74,4 +80,25 @@ function updateEngine() {
   engine.postMessage("go depth 20");
 }
 
+window.goBack = () => {
+  if (currentIndex >= 0) {
+    game.undo();
+    currentIndex--;
+    board.setPosition(game.fen());
+    updateEngine();
+  }
+};
+
+window.goForward = () => {
+  if (currentIndex < gameHistory.length - 1) {
+    currentIndex++;
+    game.move(gameHistory[currentIndex]);
+    board.setPosition(game.fen());
+    updateEngine();
+  } else {
+    console.log("No more moves to redo.");
+  }
+};
+engine.postMessage("uci");
+engine.postMessage("isready");
 updateEngine();
