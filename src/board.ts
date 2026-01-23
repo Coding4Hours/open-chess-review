@@ -10,7 +10,7 @@ import { Chess } from "chess.js";
 
 const game = new Chess();
 
-const pgn = prompt("give pgn pwease") || localStorage.getItem("pgn");
+const pgn = localStorage.getItem("pgn") || prompt("give pgn pwease");
 localStorage.setItem("pgn", pgn);
 game.loadPgn(pgn);
 
@@ -21,7 +21,7 @@ let data = {
   gameHistory: game.history(),
   currentIndex: game.history().length - 1,
   depth: localStorage.getItem("depth") || 20,
-  movetime: localStorage.getItem("movetime") || 1000,
+  movetime: localStorage.getItem("movetime") || 100,
   threads: localStorage.getItem("threads") || 11,
 };
 
@@ -96,7 +96,7 @@ function goBack() {
   if (data.currentIndex >= 0) {
     game.undo();
     data.currentIndex--;
-    board.setPosition(game.fen());
+    board.setPosition(game.fen(), true);
     updateEngine();
   }
 }
@@ -105,7 +105,7 @@ function goForward() {
   if (data.currentIndex < data.gameHistory.length - 1) {
     data.currentIndex++;
     game.move(data.gameHistory[data.currentIndex]);
-    board.setPosition(game.fen());
+    board.setPosition(game.fen(), true);
     updateEngine();
   } else {
     console.log("No more moves to redo.");
