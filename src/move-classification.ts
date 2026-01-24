@@ -42,21 +42,39 @@ const classifications = {
 	},
 };
 
+function getExpectedPoints(
+	evaluation: number,
+) {
+	const opts = {
+		centipawnGradient: 0.0035,
+	};
+
+	return 1 / (1 + Math.exp(
+		-opts.centipawnGradient * evaluation
+	));
+}
+
 export function classifyMove(
 	evalBefore: number,
 	evalAfter: number,
 	isWhite: boolean,
 	lastFen: string, fen: string, square: Square
 ) {
-	const adjustedBefore = isWhite ? evalBefore : -evalBefore;
-	const adjustedAfter = isWhite ? evalAfter : -evalAfter;
-	const evalLoss = adjustedBefore - adjustedAfter;
+	const adjustedBefore = getExpectedPoints(isWhite ? evalBefore : -evalBefore)
+	const adjustedAfter = getExpectedPoints(isWhite ? evalAfter : -evalAfter);
+	const evalLoss = adjustedBefore - adjustedAfter
 
-	if (evalLoss >= 500) return classifications.blunder;
-	if (evalLoss >= 100) return classifications.mistake;
-	if (evalLoss >= 50) return classifications.inaccuracy;
-	if (evalLoss >= 25) return classifications.good;
-	if (evalLoss > 0) if (isPieceHanging(lastFen, fen, square)) return classifications.brilliant; else return classifications.excellent;
-	if (evalLoss == 0) if (isPieceHanging(lastFen, fen, square)) return classifications.brilliant; else return classifications.best;
-	return classifications.best;
+	if (evalLoss <= 0.02) {
+		return isPieceHanging(lastFen, fen, square) ? classifications.
+			brilliant :
+			(evalLoss <= 0 ? classifications.best : classifications.
+				excellent);
+	}
+
+
+	if (evalLoss <= 0.05) return classifications.good;
+	if (evalLoss <= 0.10) return classifications.inaccuracy;
+	if (evalLoss <= 0.20) return classifications.mistake;
+	return classifications.blunder;
+
 }
