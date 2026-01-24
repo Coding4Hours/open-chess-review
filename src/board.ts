@@ -109,11 +109,16 @@ engine.onmessage = (event) => {
 					const isWhiteMove = game.turn() === "b";
 					const classificationEl = $("#classification") as HTMLElement;
 					if (classificationEl) {
+						const history = game.history({ verbose: true })
+						const latestMove = history[history.length - 1];
 
 						const classification = classifyMove(
 							evalBefore,
 							evalAfter,
 							isWhiteMove,
+							latestMove.before,
+							latestMove.after,
+							latestMove.to
 						);
 						classificationEl.textContent = `${classification.name}`;
 						classificationEl.style.color = `${classification.color}`;
