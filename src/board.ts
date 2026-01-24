@@ -170,6 +170,10 @@ function goForward() {
 $("#go-back")?.addEventListener("click", goBack);
 $("#go-forward")?.addEventListener("click", goForward);
 
+window.toggleOrientation = () => {
+  board.setOrientation(board.getOrientation() === "w" ? "b" : "w");
+};
+
 engine.postMessage("uci");
 engine.postMessage("isready");
 updateEngine();
