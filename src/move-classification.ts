@@ -26,11 +26,12 @@ const classifications = {
 		name: "Blunder",
 		color: "#B82C2C",
 	},
-	// TODO: not implemented yet
 	brilliant: {
 		name: "Brilliant",
 		color: "#1B8552",
 	},
+
+	// TODO: not implemented yet
 	great: {
 		name: "Great",
 		color: "#5B8B2F",
