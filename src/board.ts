@@ -176,12 +176,17 @@ function goForward() {
 	}
 }
 
-$("#go-back")?.addEventListener("click", goBack);
-$("#go-forward")?.addEventListener("click", goForward);
-
-window.toggleOrientation = () => {
+function toggleOrientation() {
 	board.setOrientation(board.getOrientation() === "w" ? "b" : "w");
 };
+
+
+$("#go-back")?.addEventListener("click", goBack);
+$("#go-forward")?.addEventListener("click", goForward);
+$("#flip-board")?.addEventListener("click", toggleOrientation);
+
+
+
 
 engine.postMessage("uci");
 engine.postMessage("isready");

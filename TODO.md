@@ -5,11 +5,11 @@
 - [ ] Add support for multiple engines
 - [ ] Add actually good settings
 - [ ] move accuracy
-- [ ] flip board
 - [ ] share feature
 - [ ] theory move rating
 - [ ] opening detection
 - [x] Add support for PGN import/export
+- [x] flip board
 - [x] Add support for move history (HIGH PRIORITY)
 - [x] for some reason stockfish lite wont work so only the huge version works
 - [x] Implement move categorization based on evaluation changes
