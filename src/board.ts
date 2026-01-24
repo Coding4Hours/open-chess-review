@@ -22,7 +22,7 @@ let data = {
 	totalMoves: game.history().length,
 	moveHistory: game.history(),
 	currentIndex: game.history().length - 1,
-	depth: localStorage.getItem("depth") || 25,
+	depth: localStorage.getItem("depth") || 16,
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
 	fenHistory: [] as string[],
@@ -43,7 +43,8 @@ for (const move of pgnMoves) {
 const board = new Chessboard(document.getElementById("board"), {
 	position: game.fen(),
 	assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
-	extensions: [{ class: RightClickAnnotator }],
+	extensions: [{ class: RightClickAnnotator },
+	],
 });
 
 const $ = (query: string) => document.querySelector(query);
@@ -188,3 +189,7 @@ $("#flip-board")?.addEventListener("click", toggleOrientation);
 engine.postMessage("uci");
 engine.postMessage("isready");
 updateEngine();
+
+const BRILLIANT = { class: "marker-brilliant", slice: "markerSquare" };
+
+board.addMarker(BRILLIANT, "e4")

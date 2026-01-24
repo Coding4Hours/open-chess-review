@@ -19,3 +19,8 @@ label {
 .glass-card {
   @apply rounded-lg border bg-white/20 backdrop-blur-lg border-white/30 shadow-sm;
 }
+
+
+.marker-brilliant {
+	fill: #46ecd5; 
+}
