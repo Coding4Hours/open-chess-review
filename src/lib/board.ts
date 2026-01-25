@@ -21,11 +21,12 @@ export const pieceValues: Record<string, number> = {
 function getPieceInfo(board: Chess, squares: Square[]): InfluencingPiece[] {
 	return squares.map(sq => {
 		const piece = board.get(sq);
-		return {
-			square: sq,
-			color: piece.color,
-			type: piece.type
-		};
+		if (piece != null)
+			return {
+				square: sq,
+				color: piece.color,
+				type: piece.type
+			};
 	});
 }
 

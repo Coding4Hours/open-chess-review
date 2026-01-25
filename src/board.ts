@@ -1,5 +1,6 @@
 import { Chessboard } from "cm-chessboard/src/Chessboard.js";
 import { RightClickAnnotator } from "cm-chessboard/src/extensions/right-click-annotator/RightClickAnnotator.js";
+import { ARROW_TYPE } from "cm-chessboard/src/extensions/arrows/Arrows.js";
 
 import "cm-chessboard/assets/chessboard.css";
 import "cm-chessboard/assets/extensions/markers/markers.css";
@@ -7,6 +8,9 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
 import { classifyMove } from "./move-classification.ts";
+
+import openings from "@/data/openings.json"
+
 
 const game = new Chess();
 
@@ -22,11 +26,11 @@ let data = {
 	totalMoves: game.history().length,
 	moveHistory: game.history(),
 	currentIndex: game.history().length - 1,
-	depth: localStorage.getItem("depth") || 25,
+	depth: localStorage.getItem("depth") || 16,
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
 	fenHistory: [] as string[],
-	positionEvaluations: new Map(), // FEN -> white-relative score (centipawns)
+	positionEvaluations: new Map<string, { score: number, bestMove?: string }>(), // FEN -> white-relative score (centipawns)
 	engineState: "on" as "on" | "off",
 	analysisIndex: 0,
 };
@@ -43,7 +47,9 @@ for (const move of pgnMoves) {
 const board = new Chessboard(document.getElementById("board"), {
 	position: game.fen(),
 	assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
-	extensions: [{ class: RightClickAnnotator }],
+	extensions: [
+		{ class: RightClickAnnotator },
+	],
 });
 
 const $ = (query: string) => document.querySelector(query);
@@ -81,11 +87,20 @@ engine.onmessage = (event) => {
 			if (evalDisplay) evalDisplay.innerText = `Analyzing: ${data.analysisIndex}/${data.fenHistory.length - 1}`;
 		}
 
-		data.positionEvaluations.set(currentFen, whiteScore);
+		const evalData = data.positionEvaluations.get(currentFen) || { score: 0 };
+		evalData.score = whiteScore;
+		data.positionEvaluations.set(currentFen, evalData);
 	}
 
 	if (message.startsWith("bestmove")) {
+		const bestMove = message.split(" ")[1];
+		const evalData = data.positionEvaluations.get(currentFen);
+		if (evalData) {
+			evalData.bestMove = bestMove;
+		}
+
 		if (data.engineState === "on") {
+
 			data.analysisIndex++;
 			if (data.analysisIndex < data.fenHistory.length) {
 				updateEngine();
@@ -111,7 +126,8 @@ function updateEngine() {
 
 function classify() {
 	const currentFen = game.fen();
-	const evalAfter = data.positionEvaluations.get(currentFen);
+	const evalData = data.positionEvaluations.get(currentFen);
+	const evalAfter = evalData?.score;
 
 	const classificationEl = $("#classification") as HTMLElement;
 	const evalDisplay = document.getElementById("eval");
@@ -122,10 +138,21 @@ function classify() {
 		const evaluation = `${sign}${evalText}`;
 		if (evalDisplay && data.engineState === "off") evalDisplay.innerText = `Eval: ${evaluation}`;
 
+		if (evalData?.bestMove && evalData.bestMove !== "(none)") {
+			const from = evalData.bestMove.substring(0, 2);
+			const to = evalData.bestMove.substring(2, 4);
+
+			board.removeArrows();
+			board.addArrow(ARROW_TYPE.info, from, to);
+		} else {
+			board.removeArrows();
+		}
+
 		const ply = data.currentIndex + 1;
 		if (ply > 0) {
 			const fenBefore = data.fenHistory[ply - 1];
-			const evalBefore = data.positionEvaluations.get(fenBefore);
+			const evalBeforeData = data.positionEvaluations.get(fenBefore);
+			const evalBefore = evalBeforeData?.score;
 
 			if (evalBefore !== undefined) {
 				const isWhiteMove = game.turn() === "b";
@@ -151,6 +178,7 @@ function classify() {
 	} else if (data.engineState === "off") {
 		if (evalDisplay) evalDisplay.innerText = "No Eval";
 		if (classificationEl) classificationEl.textContent = "";
+		board.removeArrows();
 	}
 }
 

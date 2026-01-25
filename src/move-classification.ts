@@ -1,4 +1,4 @@
-import { isPieceHanging } from "./lib/board.ts";
+import { isPieceHanging } from "@/lib/board.ts";
 import type { Square } from "chess.js";
 
 const classifications = {
