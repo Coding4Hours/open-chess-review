@@ -58,7 +58,7 @@ const board = new Chessboard(document.getElementById("board"), {
 
 const $ = (query: string) => document.querySelector(query);
 
-const engine = new Worker("/stockfish/stockfish.js");
+window.engine = new Worker("/stockfish/stockfish.js");
 
 engine.onmessage = (event) => {
 	const message = event.data;
