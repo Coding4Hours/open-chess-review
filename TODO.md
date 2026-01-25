@@ -7,7 +7,7 @@
 - [ ] move accuracy
 - [ ] share feature
 - [ ] theory move rating
-- [ ] opening detection
+- [x] opening detection
 - [x] Add support for PGN import/export
 - [x] flip board
 - [x] Add support for move history (HIGH PRIORITY)

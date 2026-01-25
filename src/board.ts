@@ -9,7 +9,7 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 import { Chess } from "chess.js";
 import { classifyMove } from "./move-classification.ts";
 
-import openings from "@/data/openings.json"
+import openingsData from "@/data/openings.json"
 
 
 const game = new Chess();
@@ -20,12 +20,14 @@ while (!pgn) pgn = prompt("give pgn pwease");
 
 localStorage.setItem("pgn", pgn);
 game.loadPgn(pgn);
+const history = game.history();
+game.reset();
 
 let data = {
 	lastEval: "Calculating...",
-	totalMoves: game.history().length,
-	moveHistory: game.history(),
-	currentIndex: game.history().length - 1,
+	totalMoves: history.length,
+	moveHistory: history,
+	currentIndex: -1,
 	depth: localStorage.getItem("depth") || 16,
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
@@ -33,10 +35,12 @@ let data = {
 	positionEvaluations: new Map<string, { score: number, bestMove?: string }>(), // FEN -> white-relative score (centipawns)
 	engineState: "on" as "on" | "off",
 	analysisIndex: 0,
+	openings: openingsData as Record<string, string>,
+	lastOpening: "Starting Position"
 };
 
 // fen history has stuff now
-const pgnMoves = game.history({ verbose: false }) as string[];
+const pgnMoves = data.moveHistory as string[];
 const tempGame = new Chess();
 data.fenHistory.push(tempGame.fen());
 for (const move of pgnMoves) {
@@ -125,11 +129,28 @@ function updateEngine() {
 }
 
 function classify() {
+	const history = game.history({ verbose: true })
+	const latestMove = history[data.currentIndex];
 	const currentFen = game.fen();
 	const evalData = data.positionEvaluations.get(currentFen);
 	const evalAfter = evalData?.score;
 
+
+
+
+
+	const openingEl = $("#opening") as HTMLElement
+
+	const fenKey = currentFen.split(" ")[0];
+	const openingName = data.openings[fenKey];
+
+	openingEl.textContent = openingName || data.lastOpening;
+	if (openingName != null)
+		data.lastOpening = openingName;
+
 	const classificationEl = $("#classification") as HTMLElement;
+
+
 	const evalDisplay = document.getElementById("eval");
 
 	if (evalAfter !== undefined) {
@@ -157,8 +178,7 @@ function classify() {
 			if (evalBefore !== undefined) {
 				const isWhiteMove = game.turn() === "b";
 				if (classificationEl) {
-					const history = game.history({ verbose: true })
-					const latestMove = history[data.currentIndex];
+
 
 					const classification = classifyMove(
 						evalBefore,
