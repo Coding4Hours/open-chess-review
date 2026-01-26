@@ -6,6 +6,7 @@
 - [ ] Add actually good settings
 - [ ] move accuracy
 - [ ] share feature
+- [ ] a moves list
 - [ ] theory move rating
 - [x] opening detection
 - [x] Add support for PGN import/export
