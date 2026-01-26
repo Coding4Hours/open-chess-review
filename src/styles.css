@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+body {
+  @apply bg-white text-gray-800;
+}
+
 h1 {
   @apply text-2xl;
 }
@@ -17,5 +21,21 @@ label {
 }
 
 .glass-card {
-  @apply rounded-lg border bg-white/20 backdrop-blur-lg border-white/30 shadow-sm;
+  @apply rounded-lg border backdrop-blur-lg border-white/30 shadow-sm;
+}
+
+.lucide {
+  stroke-width: 2.5;
+}
+
+.info {
+  @apply font-bold text-center tabular-nums;
+}
+
+.muted {
+  @apply text-gray-400;
+}
+
+#controls button {
+  @apply p-2 rounded-md transition-colors duration-200;
 }

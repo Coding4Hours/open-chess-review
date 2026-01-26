@@ -1,3 +1,7 @@
+---
+import { SkipBack, SkipForward, RotateCw } from "@lucide/astro";
+---
+
 <div class="flex flex-wrap gap-5 mb-5 items-start">
 	<div
 		class="max-w-125 w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-170"
@@ -5,46 +9,33 @@
 	>
 	</div>
 
-	<div class="flex-1 min-w-62.5 flex flex-col gap-4 p-4 font-sans glass-card">
-		<div
-			class="text-2xl font-bold text-center text-gray-800 tabular-nums"
-			id="eval"
-		>
-			Eval: 0.00
-		</div>
+	<div
+		class="bg-slate-300/50 flex-1 min-w-62.5 flex flex-col gap-4 p-4 font-sans glass-card"
+	>
+		<div class="info text-2xl" id="eval">Eval: 0.00</div>
 
-		<div
-			class="font-bold text-center text-gray-800 tabular-nums"
-			id="classification"
-		>
-		</div>
+		<div class="info" id="classification"></div>
 
-		<div class="font-bold text-center text-gray-800 tabular-nums" id="opening">
-		</div>
+		<div class="info" id="opening"></div>
 
-		<div class="mt-2 text-xs text-gray-400 text-center">
+		<div class="mt-2 text-xs text-center">
 			Depth: <span id="eval-depth">0</span>
 		</div>
 
-		<button
-			id="flip-board"
-			class="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200"
+		<section
+			id="controls"
+			class="flex justify-center gap-2 rounded-md bg-slate-400/30 px-4 py-2 w-fit mx-auto"
 		>
-			Flip Board
-		</button>
-
-		<button
-			id="go-back"
-			class="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200"
-		>
-			Back
-		</button>
-		<button
-			id="go-forward"
-			class="px-4 py-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 transition-colors duration-200"
-		>
-			Forward
-		</button>
+			<button id="flip-board">
+				<RotateCw />
+			</button>
+			<button id="go-back">
+				<SkipBack />
+			</button>
+			<button id="go-forward">
+				<SkipForward />
+			</button>
+		</section>
 	</div>
 </div>
 
