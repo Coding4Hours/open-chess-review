@@ -129,6 +129,9 @@ function updateEngine() {
 }
 
 function classify() {
+	board.removeArrows();
+	board.removeMarkers()
+
 	const history = game.history({ verbose: true })
 	const latestMove = history[data.currentIndex];
 	const currentFen = game.fen();
@@ -163,10 +166,7 @@ function classify() {
 			const from = evalData.bestMove.substring(0, 2);
 			const to = evalData.bestMove.substring(2, 4);
 
-			board.removeArrows();
 			board.addArrow(ARROW_TYPE.info, from, to);
-		} else {
-			board.removeArrows();
 		}
 
 		const ply = data.currentIndex + 1;
