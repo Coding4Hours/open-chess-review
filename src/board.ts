@@ -11,6 +11,13 @@ import { classifyMove } from "./move-classification.ts";
 
 import openingsData from "@/data/openings.json";
 
+import moveMove from "@/data/audio/move.mp3";
+import moveCheck from "@/data/audio/check.mp3";
+import moveCapture from "@/data/audio/capture.mp3";
+import moveCastle from "@/data/audio/castle.mp3";
+import movePromote from "@/data/audio/promote.mp3";
+import moveGameend from "@/data/audio/gameend.mp3";
+
 const game = new Chess();
 
 let pgn: string | null = localStorage.getItem("pgn");
@@ -193,11 +200,38 @@ function classify() {
 	}
 }
 
+const moveSounds = {
+	move: moveMove,
+	check: moveCheck,
+	capture: moveCapture,
+	castle: moveCastle,
+	promote: movePromote,
+	gameEnd: moveGameend
+};
+
+
+function playSound(latestMove: string) {
+	if (game.isGameOver()) {
+		new Audio(moveSounds.gameEnd).play();
+	}
+	if (latestMove == "O-O" || latestMove == "O-O-O")
+		new Audio(moveSounds.castle).play();
+	else if (latestMove.endsWith("+") || latestMove.endsWith("#"))
+		new Audio(moveSounds.check).play();
+	else if (latestMove.includes("="))
+		new Audio(moveSounds.promote).play();
+	else if (latestMove.includes("x"))
+		new Audio(moveSounds.capture).play();
+	else
+		new Audio(moveSounds.move).play();
+}
+
 function goBack() {
 	if (data.currentIndex >= 0) {
 		game.undo();
 		data.currentIndex--;
 		board.setPosition(game.fen(), true);
+		playSound(data.moveHistory[data.currentIndex]);
 		classify();
 	}
 }
@@ -207,6 +241,7 @@ function goForward() {
 		data.currentIndex++;
 		game.move(data.moveHistory[data.currentIndex]);
 		board.setPosition(game.fen(), true);
+		playSound(data.moveHistory[data.currentIndex]);
 		classify();
 	}
 }
