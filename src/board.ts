@@ -76,10 +76,6 @@ engine.onmessage = (event) => {
 		const cpMatch = message.match(/score cp (-?\d+)/);
 		const mateMatch = message.match(/score mate (-?\d+)/);
 		const depthMatch = message.match(/depth (\d+)/);
-		const evalDepth = document.getElementById("eval-depth");
-
-		if (depthMatch && evalDepth && data.engineState === "on")
-			evalDepth.innerText = depthMatch[1];
 
 		let score = 0;
 		if (cpMatch) {
