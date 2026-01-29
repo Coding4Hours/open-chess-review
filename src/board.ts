@@ -7,7 +7,6 @@ import "cm-chessboard/assets/extensions/markers/markers.css";
 import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
-import { classifyMove } from "./move-classification.ts";
 import { StateTree } from "@/lib/StateTree";
 
 import openingsData from "@/data/openings.json";
@@ -19,8 +18,6 @@ import moveCastle from "@/data/audio/castle.mp3";
 import movePromote from "@/data/audio/promote.mp3";
 import moveGameend from "@/data/audio/gameend.mp3";
 
-
-import { parse } from '@mliebelt/pgn-parser'
 
 
 const game = new Chess();
@@ -35,8 +32,7 @@ const history = game.history();
 game.reset();
 
 
-const metadata = parse(pgn, { startRule: "game" })
-console.log(metadata.tags)
+
 
 let data = {
 	lastEval: "Calculating...",
@@ -57,10 +53,11 @@ let data = {
 const pgnMoves = data.moveHistory as string[];
 const tempGame = new Chess();
 for (const move of pgnMoves) {
-	tempGame.move(move);
-	data.stateTree.addMove(tempGame.fen(), move);
+	const moveDetails = tempGame.move(move);
+	data.stateTree.addMove(tempGame.fen(), move, moveDetails);
 }
-data.stateTree.setMainLineFromCurrent();
+data.stateTree.setLine();
+data.stateTree.navigateToRoot();
 
 const board = new Chessboard(document.getElementById("board"), {
 	position: game.fen(),
@@ -143,8 +140,9 @@ function classify() {
 	board.removeArrows();
 	board.removeMarkers();
 
-	const history = game.history({ verbose: true });
-	const latestMove = history[data.currentIndex];
+	const currentNode = data.stateTree.currentNode;
+	data.stateTree.classifyNode(currentNode);
+
 	const currentFen = game.fen();
 	const evalData = data.stateTree.getEvaluation(currentFen);
 	const evalAfter = evalData?.score;
@@ -175,27 +173,9 @@ function classify() {
 			board.addArrow(ARROW_TYPE.info, from, to);
 		}
 
-		const ply = data.currentIndex + 1;
-		if (ply > 0) {
-			const fenBefore = data.stateTree.mainLineFens[ply - 1];
-			const evalBeforeData = data.stateTree.getEvaluation(fenBefore);
-			const evalBefore = evalBeforeData?.score;
-
-			if (evalBefore !== undefined) {
-				const isWhiteMove = game.turn() === "b";
-				if (classificationEl) {
-					const classification = classifyMove(
-						evalBefore,
-						evalAfter,
-						isWhiteMove,
-						latestMove.before,
-						latestMove.after,
-						latestMove.to,
-					);
-					classificationEl.textContent = `${classification.name}`;
-					classificationEl.style.color = `${classification.color}`;
-				}
-			}
+		if (currentNode.classification && classificationEl) {
+			classificationEl.textContent = `${currentNode.classification.name}`;
+			classificationEl.style.color = `${currentNode.classification.color}`;
 		} else if (classificationEl) {
 			classificationEl.textContent = "";
 		}
@@ -236,8 +216,11 @@ function goBack() {
 	if (data.currentIndex >= 0) {
 		game.undo();
 		data.currentIndex--;
+		data.stateTree.navigateBack();
 		board.setPosition(game.fen(), true);
-		playSound(data.moveHistory[data.currentIndex]);
+		if (data.currentIndex >= 0) {
+			playSound(data.moveHistory[data.currentIndex]);
+		}
 		classify();
 	}
 }
@@ -247,9 +230,11 @@ function goForward() {
 		console.log("winner")
 	if (data.currentIndex < data.moveHistory.length - 1) {
 		data.currentIndex++;
-		game.move(data.moveHistory[data.currentIndex]);
+		const move = data.moveHistory[data.currentIndex];
+		game.move(move);
+		data.stateTree.navigateForward(move);
 		board.setPosition(game.fen(), true);
-		playSound(data.moveHistory[data.currentIndex]);
+		playSound(move);
 		classify();
 	}
 }

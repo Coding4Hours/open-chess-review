@@ -1,36 +1,54 @@
+import { parse } from '@mliebelt/pgn-parser'
+import type { PgnMove, Tags } from "@mliebelt/pgn-types";
+import type { ParseTree } from "@mliebelt/pgn-parser";
+import { classifyMove } from "../move-classification";
+import type { Square, Move } from "chess.js";
+
 interface Evaluation {
 	score: number;
 	bestMove?: string;
 }
 
+interface Classification {
+	name: string;
+	color: string;
+}
+
 class StateTreeNode {
 	fen: string;
 	move?: string; // The move that led to this FEN
+	moveDetails?: Move;
 	evaluation?: Evaluation;
 	opening?: string;
-	classification?: string;
+	classification?: Classification;
 	children: StateTreeNode[];
 	parent: StateTreeNode | null;
 	thoughts: StateTreeNode[]; // will be used for custom branching moves ("thoughts")
+	metadata?: ParseTree | ParseTree[] | PgnMove[] | Tags | null;
 
 	constructor(
 		fen: string,
 		options: {
 			move?: string;
+			moveDetails?: Move;
 			evaluation?: Evaluation;
 			opening?: string;
-			classification?: string;
+			classification?: Classification;
 			parent?: StateTreeNode | null;
+			pgn?: string;
 		} = {}
 	) {
 		this.fen = fen;
 		this.move = options.move;
+		this.moveDetails = options.moveDetails;
 		this.evaluation = options.evaluation;
 		this.opening = options.opening;
 		this.classification = options.classification;
 		this.children = [];
 		this.parent = options.parent ?? null;
 		this.thoughts = [];
+		if (options.pgn)
+			this.metadata = parse(options.pgn, { startRule: "game" });
 	}
 
 	addChild(node: StateTreeNode): StateTreeNode {
@@ -52,28 +70,49 @@ class StateTree {
 	evaluations: Map<string, Evaluation>;
 	mainLineFens: string[] = [];
 
-	constructor(initialFen: string) {
+	constructor(initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
 		this.root = new StateTreeNode(initialFen);
 		this.currentNode = this.root;
 		this.evaluations = new Map();
 	}
 
-	addMove(fen: string, move: string): StateTreeNode {
+	addMove(fen: string, move: string, moveDetails?: Move): StateTreeNode {
 		const existingChild = this.currentNode.children.find((child) => child.move === move);
 		if (existingChild) {
 			this.currentNode = existingChild;
 			return existingChild;
 		}
 
-		const newNode = new StateTreeNode(fen, { move, parent: this.currentNode });
+		const newNode = new StateTreeNode(fen, { move, moveDetails, parent: this.currentNode });
 		this.currentNode.addChild(newNode);
 		this.currentNode = newNode;
 		return newNode;
 	}
 
+	classifyNode(node: StateTreeNode) {
+		if (!node.parent || !node.moveDetails) return;
+
+		const evalAfter = this.getEvaluation(node.fen)?.score;
+		const evalBefore = this.getEvaluation(node.parent.fen)?.score;
+
+		if (evalAfter === undefined || evalBefore === undefined) return;
+
+		const isWhite = node.moveDetails.color === 'w';
+
+		const classification = classifyMove(
+			evalBefore,
+			evalAfter,
+			isWhite,
+			node.parent.fen,
+			node.fen,
+			node.moveDetails.to as Square
+		);
+
+		node.classification = classification;
+	}
+
 	updateEvaluation(fen: string, evaluation: Evaluation) {
 		this.evaluations.set(fen, evaluation);
-		// Optionally update specific nodes if needed, but the Map is the source of truth for the position
 	}
 
 	getEvaluation(fen: string): Evaluation | undefined {
@@ -94,7 +133,7 @@ class StateTree {
 		return this.getHistory().map(node => node.fen);
 	}
 
-	setMainLineFromCurrent() {
+	setLine() {
 		this.mainLineFens = this.getFenHistory();
 	}
 
