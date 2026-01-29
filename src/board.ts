@@ -21,40 +21,19 @@ import moveGameend from "@/data/audio/gameend.mp3";
 
 const game = new Chess();
 
-let pgn: string | null = localStorage.getItem("pgn");
-
-while (!pgn) pgn = prompt("give pgn pwease");
-
-localStorage.setItem("pgn", pgn);
-game.loadPgn(pgn);
-const history = game.history();
-game.reset();
-
-
-
-
 let data = {
 	lastEval: "Calculating...",
-	totalMoves: history.length,
-	moveHistory: history,
+	totalMoves: 0,
+	moveHistory: [] as any[],
 	currentIndex: -1,
 	depth: localStorage.getItem("depth") || 16,
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
 	multipv: localStorage.getItem("multipv") || 2,
 	stateTree: new StateTree(),
-	engineState: "on" as "on" | "off",
+	engineState: "off" as "on" | "off",
 	analysisIndex: 0,
 };
-
-const pgnMoves = data.moveHistory as string[];
-const tempGame = new Chess();
-for (const move of pgnMoves) {
-	const moveDetails = tempGame.move(move);
-	data.stateTree.addMove(tempGame.fen(), move, moveDetails);
-}
-data.stateTree.setLine();
-data.stateTree.navigateToRoot();
 
 const board = new Chessboard(document.getElementById("board"), {
 	position: game.fen(),
@@ -64,18 +43,54 @@ const board = new Chessboard(document.getElementById("board"), {
 
 const $ = (query: string) => document.querySelector(query);
 
-window.engine = new Worker("/stockfish/stockfish.js");
+function init(pgn: string) {
+	game.loadPgn(pgn);
+	const history = game.history();
+	game.reset();
+
+	data.totalMoves = history.length;
+	data.moveHistory = history;
+	data.currentIndex = -1;
+	data.stateTree = new StateTree();
+	data.engineState = "on";
+	data.analysisIndex = 0;
+
+	const pgnMoves = data.moveHistory as string[];
+	const tempGame = new Chess();
+	for (const move of pgnMoves) {
+		const moveDetails = tempGame.move(move);
+		data.stateTree.addMove(tempGame.fen(), move, moveDetails);
+	}
+	data.stateTree.setLine();
+	data.stateTree.navigateToRoot();
+
+	board.setPosition(game.fen(), false);
+	updateEngine();
+}
+
+const pgnTextarea = $("#pgn-textarea") as HTMLTextAreaElement;
+const analyzeBtn = $("#analyze-pgn");
+
+
+analyzeBtn?.addEventListener("click", () => {
+	if (pgnTextarea?.value) {
+		init(pgnTextarea.value);
+	}
+});
+
+const engine = new Worker("/stockfish/stockfish.js");
+(window as any).engine = engine;
 
 engine.onmessage = (event) => {
 	const message = event.data;
 	if (typeof message !== "string") return;
 
+	if (data.stateTree.mainLineFens.length === 0) return;
 	const currentFen = data.stateTree.mainLineFens[data.analysisIndex];
 
 	if (message.startsWith("info") && message.includes("score")) {
 		const cpMatch = message.match(/score cp (-?\d+)/);
 		const mateMatch = message.match(/score mate (-?\d+)/);
-		const depthMatch = message.match(/depth (\d+)/);
 
 		let score = 0;
 		if (cpMatch) {
@@ -121,6 +136,7 @@ engine.onmessage = (event) => {
 };
 
 function updateEngine() {
+	if (data.stateTree.mainLineFens.length === 0) return;
 	const fen = data.stateTree.mainLineFens[data.analysisIndex];
 	engine.postMessage("ucinewgame");
 	engine.postMessage(`position fen ${fen}`);
@@ -238,4 +254,7 @@ $("#flip-board")?.addEventListener("click", toggleOrientation);
 
 engine.postMessage("uci");
 engine.postMessage("isready");
-updateEngine();
+
+if (pgnTextarea?.value) {
+	init(pgnTextarea.value);
+}

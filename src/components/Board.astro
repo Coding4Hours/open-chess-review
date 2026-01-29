@@ -10,13 +10,26 @@ import { SkipBack, SkipForward, RotateCw } from "@lucide/astro";
 	</div>
 
 	<div
-		class="bg-slate-300/50 flex flex-col gap-4 px-16 w-100 py-4 font-sans glass-card"
+		class="bg-slate-300/50 flex flex-col gap-4 px-16 w-fit min-w-100 py-4 font-sans glass-card"
 	>
 		<div class="info text-2xl" id="eval">Eval: 0.00</div>
 
 		<div class="info" id="classification"></div>
 
 		<div class="info" id="opening"></div>
+
+		<section id="pgn-input" class="flex flex-col gap-2">
+			<textarea
+				id="pgn-textarea"
+				class="w-full h-32 p-2 rounded-md border border-slate-400/50 bg-white/50 text-slate-800 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+				placeholder="Paste PGN here..."></textarea>
+			<button
+				id="analyze-pgn"
+				class="hover:bg-slate-300/70 px-4 py-2 rounded-md transition-colors font-bold"
+			>
+				Review
+			</button>
+		</section>
 
 		<section
 			id="controls"
