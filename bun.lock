@@ -4,6 +4,7 @@
     "": {
       "dependencies": {
         "@lucide/astro": "^0.563.0",
+        "@mliebelt/pgn-parser": "^1.4.19",
         "@tailwindcss/vite": "^4.1.18",
         "astro": "^5.16.11",
         "chess.js": "^1.4.0",
@@ -151,6 +152,10 @@
     "@jridgewell/trace-mapping": ["@jridgewell/trace-mapping@0.3.31", "", { "dependencies": { "@jridgewell/resolve-uri": "^3.1.0", "@jridgewell/sourcemap-codec": "^1.4.14" } }, "sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw=="],
 
     "@lucide/astro": ["@lucide/astro@0.563.0", "", { "peerDependencies": { "astro": "^4 || ^5" } }, "sha512-X9fNJvRR6pLJfkIEAFQkizWaNVvcduunJoFyR3fwPu30Y6jOu5S9k4k7HTSk3ZrEfqK2eFEqrBqqWH4fwSNKCg=="],
+
+    "@mliebelt/pgn-parser": ["@mliebelt/pgn-parser@1.4.19", "", { "dependencies": { "@mliebelt/pgn-types": "^1.0.4" }, "bin": { "pgn-parser": "bin/pgn-to-json.js" } }, "sha512-UWujpNxBjX8ONd1Wn1Pw9mexvWhzvpFWpekmlW2peMd0J+NzqK5FmRGBQLGA6meqPRW+VNvXfJhf+zHvxfS7ZA=="],
+
+    "@mliebelt/pgn-types": ["@mliebelt/pgn-types@1.0.4", "", {}, "sha512-l1VUSp8pmdsr6HNTaZIQdmd70XqmtCp5jd0fOi4KpR/mq+NBbE1A178a6+rRy001A0/Li1rUxpssDzcYBR87GQ=="],
 
     "@oslojs/encoding": ["@oslojs/encoding@1.1.0", "", {}, "sha512-70wQhgYmndg4GCPxPPxPGevRKqTIJ2Nh4OkiMWmDAVYsTQ+Ta7Sq+rPevXyXGdzr30/qZBnyOalCszoMxlyldQ=="],
 

@@ -8,6 +8,7 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
 import { classifyMove } from "./move-classification.ts";
+import { StateTree } from "@/lib/StateTree";
 
 import openingsData from "@/data/openings.json";
 
@@ -17,6 +18,10 @@ import moveCapture from "@/data/audio/capture.mp3";
 import moveCastle from "@/data/audio/castle.mp3";
 import movePromote from "@/data/audio/promote.mp3";
 import moveGameend from "@/data/audio/gameend.mp3";
+
+
+import { parse } from '@mliebelt/pgn-parser'
+
 
 const game = new Chess();
 
@@ -29,6 +34,10 @@ game.loadPgn(pgn);
 const history = game.history();
 game.reset();
 
+
+const metadata = parse(pgn, { startRule: "game" })
+console.log(metadata.tags)
+
 let data = {
 	lastEval: "Calculating...",
 	totalMoves: history.length,
@@ -38,22 +47,20 @@ let data = {
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
 	multipv: localStorage.getItem("multipv") || 2,
-	fenHistory: [] as string[],
-	positionEvaluations: new Map<string, { score: number; bestMove?: string }>(), // FEN -> white-relative score (centipawns)
+	stateTree: new StateTree(),
 	engineState: "on" as "on" | "off",
 	analysisIndex: 0,
 	openings: openingsData as Record<string, string>,
 	lastOpening: "Starting Position",
 };
 
-// fen history has stuff now
 const pgnMoves = data.moveHistory as string[];
 const tempGame = new Chess();
-data.fenHistory.push(tempGame.fen());
 for (const move of pgnMoves) {
 	tempGame.move(move);
-	data.fenHistory.push(tempGame.fen());
+	data.stateTree.addMove(tempGame.fen(), move);
 }
+data.stateTree.setMainLineFromCurrent();
 
 const board = new Chessboard(document.getElementById("board"), {
 	position: game.fen(),
@@ -69,7 +76,7 @@ engine.onmessage = (event) => {
 	const message = event.data;
 	if (typeof message !== "string") return;
 
-	const currentFen = data.fenHistory[data.analysisIndex];
+	const currentFen = data.stateTree.mainLineFens[data.analysisIndex];
 
 	if (message.startsWith("info") && message.includes("score")) {
 		const cpMatch = message.match(/score cp (-?\d+)/);
@@ -94,24 +101,23 @@ engine.onmessage = (event) => {
 		if (data.engineState === "on") {
 			const evalDisplay = document.getElementById("eval");
 			if (evalDisplay)
-				evalDisplay.innerText = `Analyzing: ${data.analysisIndex}/${data.fenHistory.length - 1}`;
+				evalDisplay.innerText = `Analyzing: ${data.analysisIndex}/${data.stateTree.mainLineFens.length - 1}`;
 		}
 
-		const evalData = data.positionEvaluations.get(currentFen) || { score: 0 };
+		const evalData = data.stateTree.getEvaluation(currentFen) || { score: 0 };
 		evalData.score = whiteScore;
-		data.positionEvaluations.set(currentFen, evalData);
+		data.stateTree.updateEvaluation(currentFen, evalData);
 	}
 
 	if (message.startsWith("bestmove")) {
 		const bestMove = message.split(" ")[1];
-		const evalData = data.positionEvaluations.get(currentFen);
-		if (evalData) {
-			evalData.bestMove = bestMove;
-		}
+		const evalData = data.stateTree.getEvaluation(currentFen) || { score: 0 };
+		evalData.bestMove = bestMove;
+		data.stateTree.updateEvaluation(currentFen, evalData);
 
 		if (data.engineState === "on") {
 			data.analysisIndex++;
-			if (data.analysisIndex < data.fenHistory.length) {
+			if (data.analysisIndex < data.stateTree.mainLineFens.length) {
 				updateEngine();
 			} else {
 				data.engineState = "off";
@@ -125,7 +131,7 @@ engine.onmessage = (event) => {
 };
 
 function updateEngine() {
-	const fen = data.fenHistory[data.analysisIndex];
+	const fen = data.stateTree.mainLineFens[data.analysisIndex];
 	engine.postMessage("ucinewgame");
 	engine.postMessage(`position fen ${fen}`);
 	engine.postMessage(
@@ -140,7 +146,7 @@ function classify() {
 	const history = game.history({ verbose: true });
 	const latestMove = history[data.currentIndex];
 	const currentFen = game.fen();
-	const evalData = data.positionEvaluations.get(currentFen);
+	const evalData = data.stateTree.getEvaluation(currentFen);
 	const evalAfter = evalData?.score;
 
 	const openingEl = $("#opening") as HTMLElement;
@@ -171,8 +177,8 @@ function classify() {
 
 		const ply = data.currentIndex + 1;
 		if (ply > 0) {
-			const fenBefore = data.fenHistory[ply - 1];
-			const evalBeforeData = data.positionEvaluations.get(fenBefore);
+			const fenBefore = data.stateTree.mainLineFens[ply - 1];
+			const evalBeforeData = data.stateTree.getEvaluation(fenBefore);
 			const evalBefore = evalBeforeData?.score;
 
 			if (evalBefore !== undefined) {
@@ -237,6 +243,8 @@ function goBack() {
 }
 
 function goForward() {
+	if (data.currentIndex == data.moveHistory.length - 2)
+		console.log("winner")
 	if (data.currentIndex < data.moveHistory.length - 1) {
 		data.currentIndex++;
 		game.move(data.moveHistory[data.currentIndex]);

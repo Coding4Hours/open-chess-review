@@ -8,6 +8,8 @@
 - [ ] share feature
 - [ ] a moves list
 - [ ] theory move rating
+- [ ] show material advantage
+- [ ] show players
 - [x] opening detection
 - [x] Add support for PGN import/export
 - [x] flip board
