@@ -3,6 +3,7 @@ import type { PgnMove, Tags } from "@mliebelt/pgn-types";
 import type { ParseTree } from "@mliebelt/pgn-parser";
 import { classifyMove } from "../move-classification";
 import type { Square, Move } from "chess.js";
+import openingsData from "../data/openings.json";
 
 interface Evaluation {
 	score: number;
@@ -13,6 +14,8 @@ interface Classification {
 	name: string;
 	color: string;
 }
+
+const openings = openingsData as Record<string, string>;
 
 class StateTreeNode {
 	fen: string;
@@ -71,7 +74,9 @@ class StateTree {
 	mainLineFens: string[] = [];
 
 	constructor(initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
-		this.root = new StateTreeNode(initialFen);
+		const fenKey = initialFen.split(" ")[0];
+		const opening = openings[fenKey] || "Starting Position";
+		this.root = new StateTreeNode(initialFen, { opening });
 		this.currentNode = this.root;
 		this.evaluations = new Map();
 	}
@@ -83,7 +88,9 @@ class StateTree {
 			return existingChild;
 		}
 
-		const newNode = new StateTreeNode(fen, { move, moveDetails, parent: this.currentNode });
+		const fenKey = fen.split(" ")[0];
+		const opening = openings[fenKey] || this.currentNode.opening;
+		const newNode = new StateTreeNode(fen, { move, moveDetails, parent: this.currentNode, opening });
 		this.currentNode.addChild(newNode);
 		this.currentNode = newNode;
 		return newNode;

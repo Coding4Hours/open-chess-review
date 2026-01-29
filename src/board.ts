@@ -9,7 +9,6 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 import { Chess } from "chess.js";
 import { StateTree } from "@/lib/StateTree";
 
-import openingsData from "@/data/openings.json";
 
 import moveMove from "@/data/audio/move.mp3";
 import moveCheck from "@/data/audio/check.mp3";
@@ -46,8 +45,6 @@ let data = {
 	stateTree: new StateTree(),
 	engineState: "on" as "on" | "off",
 	analysisIndex: 0,
-	openings: openingsData as Record<string, string>,
-	lastOpening: "Starting Position",
 };
 
 const pgnMoves = data.moveHistory as string[];
@@ -149,11 +146,7 @@ function classify() {
 
 	const openingEl = $("#opening") as HTMLElement;
 
-	const fenKey = currentFen.split(" ")[0];
-	const openingName = data.openings[fenKey];
-
-	openingEl.textContent = openingName || data.lastOpening;
-	if (openingName != null) data.lastOpening = openingName;
+	openingEl.textContent = currentNode.opening || "Starting Position";
 
 	const classificationEl = $("#classification") as HTMLElement;
 
