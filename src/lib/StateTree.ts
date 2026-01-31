@@ -4,11 +4,7 @@ import type { ParseTree } from "@mliebelt/pgn-parser";
 import { classifyMove } from "../move-classification";
 import type { Square, Move } from "chess.js";
 import openingsData from "../data/openings.json";
-
-interface Evaluation {
-	score: number;
-	bestMove?: string;
-}
+import type { Evaluation } from "../types/Evaluation";
 
 interface Classification {
 	name: string;
@@ -99,16 +95,16 @@ class StateTree {
 	classifyNode(node: StateTreeNode) {
 		if (!node.parent || !node.moveDetails) return;
 
-		const evalAfter = this.getEvaluation(node.fen)?.score;
-		const evalBefore = this.getEvaluation(node.parent.fen)?.score;
+		const evalAfterData = this.getEvaluation(node.fen);
+		const evalBeforeData = this.getEvaluation(node.parent.fen);
 
-		if (evalAfter === undefined || evalBefore === undefined) return;
+		if (evalAfterData === undefined || evalBeforeData === undefined) return;
 
 		const isWhite = node.moveDetails.color === 'w';
 
 		const classification = classifyMove(
-			evalBefore,
-			evalAfter,
+			evalBeforeData,
+			evalAfterData,
 			isWhite,
 			node.parent.fen,
 			node.fen,

@@ -8,6 +8,8 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
 import { StateTree } from "@/lib/StateTree";
+import type { Evaluation } from "@/types/Evaluation";
+import { getScore } from "@/move-classification";
 
 
 import moveMove from "@/data/audio/move.mp3";
@@ -96,17 +98,20 @@ engine.onmessage = (event) => {
 		const cpMatch = message.match(/score cp (-?\d+)/);
 		const mateMatch = message.match(/score mate (-?\d+)/);
 
+		const evalData = data.stateTree.getEvaluation(currentFen) || { type: "centipawn" as const, value: 0 };
 
-		let score = 0;
 		if (cpMatch) {
-			score = parseInt(cpMatch[1]);
+			evalData.type = "centipawn";
+			evalData.value = parseInt(cpMatch[1]);
 		} else if (mateMatch) {
-			const mateIn = parseInt(mateMatch[1]);
-			score = mateIn > 0 ? 10000 - mateIn : -10000 - mateIn;
+			evalData.type = "mate";
+			evalData.value = parseInt(mateMatch[1]);
 		}
 
 		const sideToMove = currentFen.split(" ")[1];
-		const whiteScore = sideToMove === "w" ? score : -score;
+		if (sideToMove === "b") {
+			evalData.value = -evalData.value;
+		}
 
 		if (data.engineState === "on") {
 			const evalDisplay = document.getElementById("eval");
@@ -114,14 +119,12 @@ engine.onmessage = (event) => {
 				evalDisplay.innerText = `Analyzing: ${data.analysisIndex}/${data.stateTree.mainLineFens.length - 1}`;
 		}
 
-		const evalData = data.stateTree.getEvaluation(currentFen) || { score: 0 };
-		evalData.score = whiteScore;
 		data.stateTree.updateEvaluation(currentFen, evalData);
 	}
 
 	if (message.startsWith("bestmove")) {
 		const bestMove = message.split(" ")[1];
-		const evalData = data.stateTree.getEvaluation(currentFen) || { score: 0 };
+		const evalData = data.stateTree.getEvaluation(currentFen) || { type: "centipawn" as const, value: 0 };
 		evalData.bestMove = bestMove;
 		data.stateTree.updateEvaluation(currentFen, evalData);
 
@@ -160,7 +163,8 @@ function classify() {
 
 	const currentFen = game.fen();
 	const evalData = data.stateTree.getEvaluation(currentFen);
-	const evalAfter = evalData?.score;
+
+	const score = evalData ? getScore(evalData) : undefined;
 
 	const openingEl = $("#opening") as HTMLElement;
 
@@ -170,15 +174,17 @@ function classify() {
 
 	const evalDisplay = document.getElementById("eval");
 
-	if (evalAfter !== undefined) {
-
-		const evalText = (Math.abs(evalAfter) / 100).toFixed(1);
+	if (score !== undefined && evalData) {
+		let evalText = "";
+		if (evalData.type === "mate") {
+			evalText = `M${Math.abs(evalData.value)}`;
+		} else {
+			evalText = (Math.abs(evalData.value) / 100).toFixed(1);
+		}
 
 		if (evalDisplay && data.engineState === "off") {
-
-
-			const blackBarHeight = Math.max(Math.min(totalHeight / 2 - evalAfter / 3, totalHeight), 0);
-			const whiteBarHeight = Math.max(Math.min(totalHeight / 2 + evalAfter / 3, totalHeight), 0);
+			const blackBarHeight = Math.max(Math.min(totalHeight / 2 - score / 3, totalHeight), 0);
+			const whiteBarHeight = Math.max(Math.min(totalHeight / 2 + score / 3, totalHeight), 0);
 
 
 			const whiteRect = document.querySelector("#white-rect") as SVGRectElement;
@@ -196,9 +202,12 @@ function classify() {
 				whiteRect.setAttribute("y", blackBarHeight.toString());
 				whiteRect.setAttribute("height", whiteBarHeight.toString());
 
+
+
 				if (whiteText && blackText) {
 					blackText.setAttribute("y", "20");
 					whiteText.setAttribute("y", "720");
+
 				}
 			} else {
 				whiteRect.setAttribute("y", "0");
@@ -206,15 +215,24 @@ function classify() {
 
 				blackRect.setAttribute("y", whiteBarHeight.toString());
 				blackRect.setAttribute("height", blackBarHeight.toString());
-
 				if (whiteText && blackText) {
 					whiteText.setAttribute("y", "20");
 					blackText.setAttribute("y", "720");
 
+
+
 				}
 			}
-			whiteText.textContent = evalText;
-			blackText.textContent = evalText;
+			if (score > 0) {
+				whiteText.textContent = evalText;
+				blackText.textContent = "";
+			} else if (score < 0) {
+				whiteText.textContent = "";
+				blackText.textContent = evalText;
+			} else {
+				whiteText.textContent = "";
+				blackText.textContent = "";
+			}
 
 		}
 

@@ -26,7 +26,8 @@ function getPieceInfo(board: Chess, squares: Square[]): InfluencingPiece[] {
 				color: piece.color,
 				type: piece.type,
 			};
-	});
+		return null;
+	}).filter((p): p is InfluencingPiece => p !== null);
 }
 
 export function getAttackers(fen: string, square: Square): InfluencingPiece[] {
