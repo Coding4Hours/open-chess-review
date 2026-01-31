@@ -132,7 +132,8 @@ engine.onmessage = (event) => {
 			} else {
 				data.engineState = "off";
 				const evalDisplay = document.getElementById("eval");
-				if (evalDisplay) evalDisplay.innerText = "Analysis Complete";
+				if (evalDisplay) evalDisplay.classList.add("hidden")
+				alert("Analysis complete!")
 				classify();
 			}
 			return;
@@ -171,10 +172,14 @@ function classify() {
 
 	if (evalAfter !== undefined) {
 
+		const evalText = (Math.abs(evalAfter) / 100).toFixed(1);
+
 		if (evalDisplay && data.engineState === "off") {
-			const winChance = 1 / (1 + Math.exp(-0.004 * evalAfter));
-			const whiteBarHeight = winChance * totalHeight;
-			const blackBarHeight = totalHeight - whiteBarHeight;
+
+
+			const blackBarHeight = Math.max(Math.min(totalHeight / 2 - evalAfter / 3, totalHeight), 0);
+			const whiteBarHeight = Math.max(Math.min(totalHeight / 2 + evalAfter / 3, totalHeight), 0);
+
 
 			const whiteRect = document.querySelector("#white-rect") as SVGRectElement;
 			const blackRect = document.querySelector("#black-rect") as SVGRectElement;
@@ -182,6 +187,7 @@ function classify() {
 			const blackText = document.querySelector("#black-eval-text") as SVGTextElement;
 
 			const orientation = board.getOrientation();
+
 
 			if (orientation === "w") {
 				blackRect.setAttribute("y", "0");
@@ -204,8 +210,11 @@ function classify() {
 				if (whiteText && blackText) {
 					whiteText.setAttribute("y", "20");
 					blackText.setAttribute("y", "720");
+
 				}
 			}
+			whiteText.textContent = evalText;
+			blackText.textContent = evalText;
 
 		}
 
