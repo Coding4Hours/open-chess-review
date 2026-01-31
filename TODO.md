@@ -11,6 +11,7 @@
 - [ ] show material advantage
 - [ ] show players
 - [ ] if a piece is trapped it isnt brilliant
+- [x] evaluation bar
 - [x] opening detection
 - [x] Add support for PGN import/export
 - [x] flip board

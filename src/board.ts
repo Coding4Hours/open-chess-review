@@ -43,6 +43,10 @@ const board = new Chessboard(document.getElementById("board"), {
 
 const $ = (query: string) => document.querySelector(query);
 
+const evaluationBar = document.querySelector("#evaluation-bar") as SVGElement;
+
+const totalHeight = evaluationBar.clientHeight;
+
 function init(pgn: string) {
 	game.loadPgn(pgn);
 	const history = game.history();
@@ -91,6 +95,7 @@ engine.onmessage = (event) => {
 	if (message.startsWith("info") && message.includes("score")) {
 		const cpMatch = message.match(/score cp (-?\d+)/);
 		const mateMatch = message.match(/score mate (-?\d+)/);
+
 
 		let score = 0;
 		if (cpMatch) {
@@ -165,11 +170,44 @@ function classify() {
 	const evalDisplay = document.getElementById("eval");
 
 	if (evalAfter !== undefined) {
-		const evalText = (Math.abs(evalAfter) / 100).toFixed(2);
-		const sign = evalAfter >= 0 ? "+" : "-";
-		const evaluation = `${sign}${evalText}`;
-		if (evalDisplay && data.engineState === "off")
-			evalDisplay.innerText = `Eval: ${evaluation}`;
+
+		if (evalDisplay && data.engineState === "off") {
+			const winChance = 1 / (1 + Math.exp(-0.004 * evalAfter));
+			const whiteBarHeight = winChance * totalHeight;
+			const blackBarHeight = totalHeight - whiteBarHeight;
+
+			const whiteRect = document.querySelector("#white-rect") as SVGRectElement;
+			const blackRect = document.querySelector("#black-rect") as SVGRectElement;
+			const whiteText = document.querySelector("#white-eval-text") as SVGTextElement;
+			const blackText = document.querySelector("#black-eval-text") as SVGTextElement;
+
+			const orientation = board.getOrientation();
+
+			if (orientation === "w") {
+				blackRect.setAttribute("y", "0");
+				blackRect.setAttribute("height", blackBarHeight.toString());
+
+				whiteRect.setAttribute("y", blackBarHeight.toString());
+				whiteRect.setAttribute("height", whiteBarHeight.toString());
+
+				if (whiteText && blackText) {
+					blackText.setAttribute("y", "20");
+					whiteText.setAttribute("y", "720");
+				}
+			} else {
+				whiteRect.setAttribute("y", "0");
+				whiteRect.setAttribute("height", whiteBarHeight.toString());
+
+				blackRect.setAttribute("y", whiteBarHeight.toString());
+				blackRect.setAttribute("height", blackBarHeight.toString());
+
+				if (whiteText && blackText) {
+					whiteText.setAttribute("y", "20");
+					blackText.setAttribute("y", "720");
+				}
+			}
+
+		}
 
 		if (evalData?.bestMove && evalData.bestMove !== "(none)") {
 			const from = evalData.bestMove.substring(0, 2);
@@ -179,6 +217,8 @@ function classify() {
 		}
 
 		if (currentNode.classification && classificationEl) {
+
+
 			classificationEl.textContent = `${currentNode.classification.name}`;
 			classificationEl.style.color = `${currentNode.classification.color}`;
 		} else if (classificationEl) {
@@ -244,8 +284,9 @@ function goForward() {
 	}
 }
 
-function toggleOrientation() {
-	board.setOrientation(board.getOrientation() === "w" ? "b" : "w");
+async function toggleOrientation() {
+	await board.setOrientation(board.getOrientation() === "w" ? "b" : "w");
+	classify();
 }
 
 $("#go-back")?.addEventListener("click", goBack);
