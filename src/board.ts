@@ -104,7 +104,8 @@ engine.onmessage = (event) => {
 			evalData.value = parseInt(cpMatch[1]);
 		} else if (mateMatch) {
 			evalData.type = "mate";
-			evalData.value = parseInt(mateMatch[1]);
+			const mateValue = parseInt(mateMatch[1]);
+			evalData.value = mateValue === 0 ? -0.01 : mateValue;
 		}
 
 		const sideToMove = currentFen.split(" ")[1];
@@ -176,7 +177,7 @@ function classify() {
 	if (score !== undefined && evalData) {
 		let evalText = "";
 		if (evalData.type === "mate") {
-			evalText = `M${Math.abs(evalData.value)}`;
+			evalText = `M${Math.round(Math.abs(evalData.value))}`;
 		} else {
 			evalText = (Math.abs(evalData.value) / 100).toFixed(1);
 		}
