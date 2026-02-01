@@ -1,15 +1,12 @@
 import { parse } from '@mliebelt/pgn-parser'
+import { classifications } from "@/constants/classifications"
 import type { PgnMove, Tags } from "@mliebelt/pgn-types";
 import type { ParseTree } from "@mliebelt/pgn-parser";
 import { classifyMove } from "../move-classification";
 import type { Square, Move } from "chess.js";
 import openingsData from "../data/openings.json";
 import type { Evaluation } from "../types/Evaluation";
-
-interface Classification {
-	name: string;
-	color: string;
-}
+import type { Classification } from "../types/Classification";
 
 const openings = openingsData as Record<string, string>;
 

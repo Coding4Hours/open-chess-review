@@ -8,7 +8,6 @@ import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
 import { StateTree } from "@/lib/StateTree";
-import type { Evaluation } from "@/types/Evaluation";
 import { getScore } from "@/move-classification";
 
 
