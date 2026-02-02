@@ -7,7 +7,7 @@ import "cm-chessboard/assets/extensions/markers/markers.css";
 import "cm-chessboard/assets/extensions/arrows/arrows.css";
 
 import { Chess } from "chess.js";
-import { StateTree } from "@/lib/StateTree";
+import { StateTree, type StateTreeNode } from "@/lib/StateTree";
 import { getScore } from "@/move-classification";
 
 
@@ -42,13 +42,92 @@ const board = new Chessboard(document.getElementById("board"), {
 	extensions: [{ class: RightClickAnnotator }],
 });
 
+function renderMoveTree() {
+	const container = document.getElementById("moves");
+	if (!container) return;
+
+	const history = data.stateTree.getHistory().slice(1);
+	const futureNodes: StateTreeNode[] = [];
+	for (let w = data.stateTree.currentNode; w.children[0]; w = w.children[0]) {
+		futureNodes.push(w.children[0]);
+	}
+	const allNodes = [...history, ...futureNodes];
+
+	container.innerHTML = "";
+	const list = document.createElement("div");
+	list.className = "grid grid-cols-[3rem_1fr_1fr] gap-y-1 text-sm";
+	container.appendChild(list);
+
+	const getParts = (fen: string) => {
+		const parts = fen.split(" ");
+		return { turn: parts[1], num: parseInt(parts[5] || "1") };
+	};
+
+	const createCell = (content: string | StateTreeNode, isNum = false) => {
+		const div = document.createElement("div");
+		div.className = "py-1 pl-2 border-b border-slate-400/10 flex items-center gap-2";
+
+		if (typeof content === "string") {
+			div.textContent = content;
+			div.className += isNum ? " text-slate-500" : " text-slate-400";
+		} else {
+			const isCurrent = content === data.stateTree.currentNode;
+			div.className += ` cursor-pointer hover:bg-slate-400/20 ${isCurrent ? "bg-blue-500/40 font-bold text-slate-800 current-move-highlight" : ""}`;
+			div.innerHTML = `<span>${content.move}</span>`;
+			if (content.classification) {
+				const { color, name } = content.classification;
+				div.innerHTML += `<span class="text-xs" style="color:${color}" title="${name}"></span>`;
+			}
+			div.onclick = () => navigateToNode(content);
+		}
+		return div;
+	};
+
+	if (allNodes.length > 0) {
+		const first = allNodes[0];
+		const { turn, num } = getParts(first.parent?.fen || "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+		if (turn === 'b') {
+			list.append(createCell(`${num}.`, true), createCell("..."));
+		}
+
+		allNodes.forEach((node) => {
+			const { turn, num } = getParts(node.parent?.fen || "");
+			if (turn === 'w') list.append(createCell(`${num}.`, true));
+			list.append(createCell(node));
+		});
+	}
+
+	container.querySelector(".current-move-highlight")?.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+
+
 const $ = (query: string) => document.querySelector(query);
 
 const evaluationBar = document.querySelector("#evaluation-bar") as SVGElement;
 
 const totalHeight = evaluationBar.clientHeight;
 
+
+function navigateToNode(node: StateTreeNode) {
+	data.stateTree.currentNode = node;
+	game.load(node.fen);
+	board.setPosition(node.fen, true);
+
+	const historyNodes = data.stateTree.getHistory();
+	data.moveHistory = historyNodes.map(n => n.move).filter(Boolean);
+	data.currentIndex = data.moveHistory.length - 1;
+
+	if (node.move) {
+		playSound(node.move);
+	}
+
+	classify();
+	renderMoveTree();
+}
+
 function init(pgn: string) {
+
 	data.stateTree = new StateTree(undefined, { pgn });
 
 	const historyNodes = data.stateTree.getHistory();
@@ -65,6 +144,8 @@ function init(pgn: string) {
 	game.reset();
 
 	board.setPosition(game.fen(), false);
+
+	renderMoveTree();
 	updateEngine();
 }
 
@@ -133,6 +214,7 @@ engine.onmessage = (event) => {
 				if (evalDisplay) evalDisplay.classList.add("hidden")
 				alert("Analysis complete!")
 				classify();
+				renderMoveTree();
 			}
 			return;
 		}
@@ -247,7 +329,6 @@ function classify() {
 			classificationEl.textContent = "";
 		}
 	} else if (data.engineState === "off") {
-		if (evalDisplay) evalDisplay.innerText = "No Eval";
 		if (classificationEl) classificationEl.textContent = "";
 		board.removeArrows();
 	}
@@ -280,29 +361,16 @@ function playSound(latestMove: string) {
 }
 
 function goBack() {
-	if (data.currentIndex >= 0) {
-		game.undo();
-		data.currentIndex--;
-		data.stateTree.navigateBack();
-		board.setPosition(game.fen(), true);
-		if (data.currentIndex >= 0) {
-			playSound(data.moveHistory[data.currentIndex]);
-		}
-		classify();
+	const parent = data.stateTree.currentNode.parent;
+	if (parent) {
+		navigateToNode(parent);
 	}
 }
 
 function goForward() {
-	if (data.currentIndex == data.moveHistory.length - 2)
-		console.log("winner")
-	if (data.currentIndex < data.moveHistory.length - 1) {
-		data.currentIndex++;
-		const move = data.moveHistory[data.currentIndex];
-		game.move(move);
-		data.stateTree.navigateForward(move);
-		board.setPosition(game.fen(), true);
-		playSound(move);
-		classify();
+	if (data.stateTree.currentNode.children.length > 0) {
+		// For now, just go to the first child
+		navigateToNode(data.stateTree.currentNode.children[0]);
 	}
 }
 
@@ -323,14 +391,14 @@ if (pgnTextarea?.value) {
 }
 
 //use chess.com
-// const date = new Date();
-// const currYear = date.getFullYear()
-// const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
-//
-// let gamesResponse = await fetch(
-// 	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
-// 	{ method: "GET" }
-// );
-//
-// let games = (await gamesResponse.json()).games;
-// init(games[games.length - 1].pgn)
+const date = new Date();
+const currYear = date.getFullYear()
+const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+
+let gamesResponse = await fetch(
+	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
+	{ method: "GET" }
+);
+
+let games = (await gamesResponse.json()).games;
+init(games[games.length - 1].pgn)
