@@ -43,6 +43,10 @@ const board = new Chessboard(document.getElementById("board"), {
 });
 
 function renderMoveTree() {
+	const bigercontainer = document.getElementById("move-tree");
+	if (!bigercontainer) return;
+	bigercontainer.setAttribute("class", "mt-4 p-4 rounded-md bg-white/30 max-h-100 overflow-y-auto text-left font-mono text-sm")
+
 	const container = document.getElementById("moves");
 	if (!container) return;
 
