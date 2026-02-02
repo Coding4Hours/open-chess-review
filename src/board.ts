@@ -391,14 +391,14 @@ if (pgnTextarea?.value) {
 }
 
 //use chess.com
-const date = new Date();
-const currYear = date.getFullYear()
-const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
-
-let gamesResponse = await fetch(
-	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
-	{ method: "GET" }
-);
-
-let games = (await gamesResponse.json()).games;
-init(games[games.length - 1].pgn)
+// const date = new Date();
+// const currYear = date.getFullYear()
+// const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+//
+// let gamesResponse = await fetch(
+// 	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
+// 	{ method: "GET" }
+// );
+//
+// let games = (await gamesResponse.json()).games;
+// init(games[games.length - 1].pgn)
