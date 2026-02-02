@@ -50,7 +50,7 @@ const totalHeight = evaluationBar.clientHeight;
 
 function init(pgn: string) {
 	data.stateTree = new StateTree(undefined, { pgn });
-	
+
 	const historyNodes = data.stateTree.getHistory();
 	data.moveHistory = historyNodes.map(node => node.move).filter(Boolean);
 	data.totalMoves = data.moveHistory.length;
@@ -321,3 +321,16 @@ engine.postMessage("isready");
 if (pgnTextarea?.value) {
 	init(pgnTextarea.value);
 }
+
+//use chess.com
+// const date = new Date();
+// const currYear = date.getFullYear()
+// const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+//
+// let gamesResponse = await fetch(
+// 	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
+// 	{ method: "GET" }
+// );
+//
+// let games = (await gamesResponse.json()).games;
+// init(games[games.length - 1].pgn)
