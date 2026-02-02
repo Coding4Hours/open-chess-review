@@ -49,25 +49,20 @@ const evaluationBar = document.querySelector("#evaluation-bar") as SVGElement;
 const totalHeight = evaluationBar.clientHeight;
 
 function init(pgn: string) {
-	game.loadPgn(pgn);
-	const history = game.history();
-	game.reset();
-
-	data.totalMoves = history.length;
-	data.moveHistory = history;
+	data.stateTree = new StateTree(undefined, { pgn });
+	
+	const historyNodes = data.stateTree.getHistory();
+	data.moveHistory = historyNodes.map(node => node.move).filter(Boolean);
+	data.totalMoves = data.moveHistory.length;
 	data.currentIndex = -1;
-	data.stateTree = new StateTree();
 	data.engineState = "on";
 	data.analysisIndex = 0;
 
-	const pgnMoves = data.moveHistory as string[];
-	const tempGame = new Chess();
-	for (const move of pgnMoves) {
-		const moveDetails = tempGame.move(move);
-		data.stateTree.addMove(tempGame.fen(), move, moveDetails);
-	}
 	data.stateTree.setLine();
 	data.stateTree.navigateToRoot();
+
+	game.loadPgn(pgn);
+	game.reset();
 
 	board.setPosition(game.fen(), false);
 	updateEngine();

@@ -1,9 +1,8 @@
 import { parse } from '@mliebelt/pgn-parser'
-import { classifications } from "@/constants/classifications"
 import type { PgnMove, Tags } from "@mliebelt/pgn-types";
 import type { ParseTree } from "@mliebelt/pgn-parser";
 import { classifyMove } from "../move-classification";
-import type { Square, Move } from "chess.js";
+import { Chess, type Square, type Move } from "chess.js";
 import openingsData from "../data/openings.json";
 import type { Evaluation } from "../types/Evaluation";
 import type { Classification } from "../types/Classification";
@@ -20,7 +19,6 @@ class StateTreeNode {
 	children: StateTreeNode[];
 	parent: StateTreeNode | null;
 	thoughts: StateTreeNode[]; // will be used for custom branching moves ("thoughts")
-	metadata?: ParseTree | ParseTree[] | PgnMove[] | Tags | null;
 
 	constructor(
 		fen: string,
@@ -43,8 +41,7 @@ class StateTreeNode {
 		this.children = [];
 		this.parent = options.parent ?? null;
 		this.thoughts = [];
-		if (options.pgn)
-			this.metadata = parse(options.pgn, { startRule: "game" });
+
 	}
 
 	addChild(node: StateTreeNode): StateTreeNode {
@@ -66,12 +63,59 @@ class StateTree {
 	evaluations: Map<string, Evaluation>;
 	mainLineFens: string[] = [];
 
-	constructor(initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1') {
+	metadata?: ParseTree | ParseTree[] | PgnMove[] | Tags | null;
+
+	constructor(
+		initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+		options: { pgn?: string } = {}
+	) {
+		this.evaluations = new Map();
+
+		if (options.pgn) {
+			this.metadata = parse(options.pgn, { startRule: "game" });
+			let parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
+			if (parsed && parsed.tags && (parsed.tags as any).FEN) {
+				initialFen = (parsed.tags as any).FEN;
+			}
+		}
+
 		const fenKey = initialFen.split(" ")[0];
 		const opening = openings[fenKey] || "Starting Position";
 		this.root = new StateTreeNode(initialFen, { opening });
 		this.currentNode = this.root;
-		this.evaluations = new Map();
+
+		if (options.pgn && this.metadata) {
+			const parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
+			if (parsed && parsed.moves) {
+				this.loadMoves(parsed.moves, this.root);
+			}
+		}
+	}
+
+	private loadMoves(pgnMoves: PgnMove[], startNode: StateTreeNode): StateTreeNode {
+		let currentChess = new Chess(startNode.fen);
+		let parentNode = startNode;
+		let lastMainLineNode = startNode;
+
+		for (const pgnMove of pgnMoves) {
+			this.currentNode = parentNode;
+			try {
+				const moveResult = currentChess.move(pgnMove.notation.notation);
+				const newNode = this.addMove(currentChess.fen(), pgnMove.notation.notation, moveResult);
+				lastMainLineNode = newNode;
+
+				if (pgnMove.variations) {
+					for (const variation of pgnMove.variations) {
+						this.loadMoves(variation, parentNode);
+					}
+				}
+				parentNode = newNode;
+			} catch (e) {
+				break;
+			}
+		}
+		this.currentNode = lastMainLineNode;
+		return lastMainLineNode;
 	}
 
 	addMove(fen: string, move: string, moveDetails?: Move): StateTreeNode {
