@@ -19,6 +19,7 @@ import movePromote from "@/data/audio/promote.mp3";
 import moveGameend from "@/data/audio/gameend.mp3";
 
 
+import Swal from 'sweetalert2'
 
 const game = new Chess();
 
@@ -153,15 +154,6 @@ function init(pgn: string) {
 	updateEngine();
 }
 
-const pgnTextarea = $("#pgn-textarea") as HTMLTextAreaElement;
-const analyzeBtn = $("#analyze-pgn");
-
-
-analyzeBtn?.addEventListener("click", () => {
-	if (pgnTextarea?.value) {
-		init(pgnTextarea.value);
-	}
-});
 
 const engine = new Worker("/stockfish/stockfish.js");
 (window as any).engine = engine;
@@ -373,7 +365,6 @@ function goBack() {
 
 function goForward() {
 	if (data.stateTree.currentNode.children.length > 0) {
-		// For now, just go to the first child
 		navigateToNode(data.stateTree.currentNode.children[0]);
 	}
 }
@@ -390,19 +381,48 @@ $("#flip-board")?.addEventListener("click", toggleOrientation);
 engine.postMessage("uci");
 engine.postMessage("isready");
 
-if (pgnTextarea?.value) {
-	init(pgnTextarea.value);
-}
 
-//use chess.com
-// const date = new Date();
-// const currYear = date.getFullYear()
-// const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
-//
-// let gamesResponse = await fetch(
-// 	`https://api.chess.com/pub/player/coinghourspo/games/${currYear}/${currMonth}`,
-// 	{ method: "GET" }
-// );
-//
-// let games = (await gamesResponse.json()).games;
-// init(games[games.length - 1].pgn)
+$("#import-game")?.addEventListener("click", async () => {
+	const { value: input, isConfirmed, isDenied, dismiss } = await Swal.fire({
+		title: "Import Game",
+		input: "text",
+		inputLabel: "Username or PGN",
+		inputPlaceholder: "Enter username or paste PGN here...",
+		showDenyButton: true,
+		showCancelButton: true,
+		confirmButtonText: "Chess.com",
+		denyButtonText: "Lichess.org",
+		cancelButtonText: "Raw PGN",
+		preConfirm: (value) => {
+			if (!value) return Swal.showValidationMessage("Please enter something");
+			return value;
+		}
+	});
+
+
+
+	if (isConfirmed) {
+		const date = new Date();
+		const currYear = date.getFullYear();
+		const currMonth = (date.getMonth() + 1).toString().padStart(2, '0');
+
+		const res = await fetch(`https://api.chess.com/pub/player/${input}/games/${currYear}/${currMonth}`);
+		const data = await res.json();
+
+		if (data.games?.length) {
+			init(data.games[data.games.length - 1].pgn);
+		} else {
+			Swal.fire("Error", "No games found for this month", "error");
+		}
+
+	} else if (isDenied) {
+		const res = await fetch(`https://lichess.org/api/games/user/${input}?max=1`);
+		const pgn = await res.text();
+
+		if (pgn) init(pgn);
+		else Swal.fire("Error", "No games found on Lichess", "error");
+
+	} else if (dismiss === Swal.DismissReason.cancel) {
+		init(input);
+	}
+});
