@@ -66,32 +66,22 @@ class StateTree {
 
 	metadata?: ParseTree | ParseTree[] | PgnMove[] | Tags | null;
 
-	constructor(
-		initialFen: string = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
-		options: { pgn?: string } = {}
-	) {
+	constructor(pgn?: string) {
 		this.evaluations = new Map();
+		let fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
+		let parsed: ParseTree | undefined;
 
-		if (options.pgn) {
-			this.metadata = parse(options.pgn, { startRule: "game" });
-			let parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
-			if (parsed && parsed.tags && (parsed.tags as any).FEN) {
-				initialFen = (parsed.tags as any).FEN;
-			}
+		if (pgn) {
+			this.metadata = parse(pgn, { startRule: "game" });
+			parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
+			fen = (parsed?.tags as any)?.FEN || fen;
 		}
 
-		const fenKey = initialFen.split(" ")[0];
-		const opening = openings[fenKey] || "Starting Position";
-		this.root = new StateTreeNode(initialFen, { opening });
-		this.currentNode = this.root;
-		this.lastNode = this.root;
+		this.root = this.currentNode = this.lastNode = new StateTreeNode(fen, {
+			opening: openings[fen.split(" ")[0]] || "Starting Position"
+		});
 
-		if (options.pgn && this.metadata) {
-			const parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
-			if (parsed && parsed.moves) {
-				this.loadMoves(parsed.moves, this.root);
-			}
-		}
+		if (parsed?.moves) this.loadMoves(parsed.moves, this.root);
 	}
 
 	private loadMoves(pgnMoves: PgnMove[], startNode: StateTreeNode): StateTreeNode {

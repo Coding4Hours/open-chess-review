@@ -1,5 +1,7 @@
 @import "tailwindcss";
-
+:root {
+  interpolate-size: allow-keywords;
+}
 
 body {
   @apply bg-slate-200/50 text-gray-800;
@@ -39,4 +41,8 @@ label {
 
 #controls button {
   @apply p-2 rounded-md transition duration-200 hover:bg-slate-400/40;
+}
+
+#chessboard span {
+  @apply font-semibold text-sm mt-1;
 }

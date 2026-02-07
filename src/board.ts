@@ -37,19 +37,42 @@ let data = {
 	analysisIndex: 0,
 };
 
-const board = new Chessboard(document.getElementById("board"), {
+
+const $ = (query: string) => document.querySelector(query);
+
+const UI = {
+	board: $("#board") as HTMLDivElement,
+	movesTree: $("#move-tree") as HTMLElement,
+	movesContainer: $("#moves") as HTMLDivElement,
+	evaluationBar: $("#evaluation-bar") as SVGElement,
+	progress: $("#progress") as HTMLSpanElement,
+	opening: $("#opening") as HTMLSpanElement,
+	classification: $("#classification") as HTMLSpanElement,
+	whiteRect: $("#white-rect") as SVGRectElement,
+	blackRect: $("#black-rect") as SVGRectElement,
+	whiteEvalText: $("#white-eval-text") as SVGTextElement,
+	blackEvalText: $("#black-eval-text") as SVGTextElement,
+	topUser: $("#top-user"),
+	bottomUser: $("#bottom-user"),
+	controls: {
+		goBack: $("#go-back") as HTMLButtonElement,
+		goForward: $("#go-forward") as HTMLButtonElement,
+		flipBoard: $("#flip-board") as HTMLButtonElement,
+		firstMove: $("#first-move") as HTMLButtonElement,
+		lastMove: $("#last-move") as HTMLButtonElement,
+		importGame: $("#import-game") as HTMLButtonElement
+	}
+};
+
+const board = new Chessboard(UI.board, {
 	position: game.fen(),
 	assetsUrl: "https://cdn.jsdelivr.net/npm/cm-chessboard@8/assets/",
 	extensions: [{ class: RightClickAnnotator }],
 });
 
 function renderMoveTree() {
-	const bigercontainer = document.getElementById("move-tree");
-	if (!bigercontainer) return;
-	bigercontainer.setAttribute("class", "mt-4 p-4 rounded-md bg-white/30 max-h-100 overflow-y-auto text-left font-mono text-sm")
+	UI.movesTree.setAttribute("class", "mt-4 p-4 rounded-md bg-white/30 max-h-100 overflow-y-auto text-left font-mono text-sm")
 
-	const container = document.getElementById("moves");
-	if (!container) return;
 
 	const history = data.stateTree.getHistory().slice(1);
 	const futureNodes: StateTreeNode[] = [];
@@ -58,10 +81,10 @@ function renderMoveTree() {
 	}
 	const allNodes = [...history, ...futureNodes];
 
-	container.innerHTML = "";
+	UI.movesContainer.innerHTML = "";
 	const list = document.createElement("div");
 	list.className = "grid grid-cols-[3rem_1fr_1fr] gap-y-1 text-sm";
-	container.appendChild(list);
+	UI.movesContainer.appendChild(list);
 
 	const getParts = (fen: string) => {
 		const parts = fen.split(" ");
@@ -103,15 +126,13 @@ function renderMoveTree() {
 		});
 	}
 
-	container.querySelector(".current-move-highlight")?.scrollIntoView({ block: "center", behavior: "smooth" });
+	UI.movesContainer.querySelector(".current-move-highlight")?.scrollIntoView({ block: "center", behavior: "smooth" });
 }
 
 
-const $ = (query: string) => document.querySelector(query);
 
-const evaluationBar = document.querySelector("#evaluation-bar") as SVGElement;
 
-const totalHeight = evaluationBar.clientHeight;
+const totalHeight = UI.evaluationBar.clientHeight;
 
 
 function navigateToNode(node: StateTreeNode) {
@@ -133,7 +154,7 @@ function navigateToNode(node: StateTreeNode) {
 
 function init(pgn: string) {
 
-	data.stateTree = new StateTree(undefined, { pgn });
+	data.stateTree = new StateTree(pgn);
 
 	const historyNodes = data.stateTree.getHistory();
 	data.moveHistory = historyNodes.map(node => node.move).filter(Boolean);
@@ -150,6 +171,8 @@ function init(pgn: string) {
 
 	board.setPosition(game.fen(), false);
 
+	console.log(data.stateTree.metadata)
+	renderUsers()
 	renderMoveTree();
 	updateEngine();
 }
@@ -186,9 +209,7 @@ engine.onmessage = (event) => {
 		}
 
 		if (data.engineState === "on") {
-			const evalDisplay = document.getElementById("eval");
-			if (evalDisplay)
-				evalDisplay.innerText = `Analyzing: ${data.analysisIndex}/${data.stateTree.mainLineFens.length - 1}`;
+			UI.progress.textContent = `Analyzing: ${data.analysisIndex}/${data.stateTree.mainLineFens.length - 1}`;
 		}
 
 		data.stateTree.updateEvaluation(currentFen, evalData);
@@ -206,8 +227,7 @@ engine.onmessage = (event) => {
 				updateEngine();
 			} else {
 				data.engineState = "off";
-				const evalDisplay = document.getElementById("eval");
-				if (evalDisplay) evalDisplay.classList.add("hidden")
+				UI.progress.classList.add("hidden")
 				alert("Analysis complete!")
 				classify();
 				renderMoveTree();
@@ -239,13 +259,10 @@ function classify() {
 
 	const score = evalData ? getScore(evalData) : undefined;
 
-	const openingEl = $("#opening") as HTMLElement;
 
-	openingEl.textContent = currentNode.opening || "Starting Position";
+	UI.opening.textContent = currentNode.opening || "Starting Position";
 
-	const classificationEl = $("#classification") as HTMLElement;
 
-	const evalDisplay = document.getElementById("eval");
 
 	if (score !== undefined && evalData) {
 		let evalText = "";
@@ -255,56 +272,53 @@ function classify() {
 			evalText = (Math.abs(evalData.value) / 100).toFixed(1);
 		}
 
-		if (evalDisplay && data.engineState === "off") {
+		if (data.engineState === "off") {
 			const blackBarHeight = Math.max(Math.min(totalHeight / 2 - score / 3, totalHeight), 0);
 			const whiteBarHeight = Math.max(Math.min(totalHeight / 2 + score / 3, totalHeight), 0);
 
 
-			const whiteRect = document.querySelector("#white-rect") as SVGRectElement;
-			const blackRect = document.querySelector("#black-rect") as SVGRectElement;
-			const whiteText = document.querySelector("#white-eval-text") as SVGTextElement;
-			const blackText = document.querySelector("#black-eval-text") as SVGTextElement;
+
 
 			const orientation = board.getOrientation();
 
 
 			if (orientation === "w") {
-				blackRect.setAttribute("y", "0");
-				blackRect.setAttribute("height", blackBarHeight.toString());
+				UI.blackRect.setAttribute("y", "0");
+				UI.blackRect.setAttribute("height", blackBarHeight.toString());
 
-				whiteRect.setAttribute("y", blackBarHeight.toString());
-				whiteRect.setAttribute("height", whiteBarHeight.toString());
+				UI.whiteRect.setAttribute("y", blackBarHeight.toString());
+				UI.whiteRect.setAttribute("height", whiteBarHeight.toString());
 
 
 
-				if (whiteText && blackText) {
-					blackText.setAttribute("y", "20");
-					whiteText.setAttribute("y", "720");
+				if (UI.whiteEvalText && UI.blackEvalText) {
+					UI.blackEvalText.setAttribute("y", "20");
+					UI.whiteEvalText.setAttribute("y", "720");
 
 				}
 			} else {
-				whiteRect.setAttribute("y", "0");
-				whiteRect.setAttribute("height", whiteBarHeight.toString());
+				UI.whiteRect.setAttribute("y", "0");
+				UI.whiteRect.setAttribute("height", whiteBarHeight.toString());
 
-				blackRect.setAttribute("y", whiteBarHeight.toString());
-				blackRect.setAttribute("height", blackBarHeight.toString());
-				if (whiteText && blackText) {
-					whiteText.setAttribute("y", "20");
-					blackText.setAttribute("y", "720");
+				UI.blackRect.setAttribute("y", whiteBarHeight.toString());
+				UI.blackRect.setAttribute("height", blackBarHeight.toString());
+				if (UI.whiteEvalText && UI.blackEvalText) {
+					UI.whiteEvalText.setAttribute("y", "20");
+					UI.blackEvalText.setAttribute("y", "720");
 
 
 
 				}
 			}
 			if (score > 0) {
-				whiteText.textContent = evalText;
-				blackText.textContent = "";
+				UI.whiteEvalText.textContent = evalText;
+				UI.blackEvalText.textContent = "";
 			} else if (score < 0) {
-				whiteText.textContent = "";
-				blackText.textContent = evalText;
+				UI.whiteEvalText.textContent = "";
+				UI.blackEvalText.textContent = evalText;
 			} else {
-				whiteText.textContent = "";
-				blackText.textContent = "";
+				UI.whiteEvalText.textContent = "";
+				UI.blackEvalText.textContent = "";
 			}
 
 		}
@@ -316,16 +330,16 @@ function classify() {
 			board.addArrow(ARROW_TYPE.info, from, to);
 		}
 
-		if (currentNode.classification && classificationEl) {
+		if (currentNode.classification && UI.classification) {
 
 
-			classificationEl.textContent = `${currentNode.classification.name}`;
-			classificationEl.style.color = `${currentNode.classification.color}`;
-		} else if (classificationEl) {
-			classificationEl.textContent = "";
+			UI.classification.textContent = `${currentNode.classification.name}`;
+			UI.classification.style.color = `${currentNode.classification.color}`;
+		} else if (UI.classification) {
+			UI.classification.textContent = "";
 		}
 	} else if (data.engineState === "off") {
-		if (classificationEl) classificationEl.textContent = "";
+		if (UI.classification) UI.classification.textContent = "";
 		board.removeArrows();
 	}
 }
@@ -369,18 +383,38 @@ function goForward() {
 	}
 }
 
-async function toggleOrientation() {
+function renderUsers() {
+	const metadata = data.stateTree.metadata as any;
+	const whitePlayer = `${metadata?.tags?.["White"]} (${metadata?.tags?.["WhiteElo"]})` || "White (?)";
+	const blackPlayer = `${metadata?.tags?.["Black"]} (${metadata?.tags?.["BlackElo"]})` || "Black (?)";
+	const orientation = board.getOrientation();
+
+
+
+	if (UI.topUser && UI.bottomUser) {
+		if (orientation === "w") {
+			UI.topUser.textContent = blackPlayer;
+			UI.bottomUser.textContent = whitePlayer;
+		} else {
+			UI.topUser.textContent = whitePlayer;
+			UI.bottomUser.textContent = blackPlayer;
+		}
+	}
+}
+
+async function flipBoard() {
 	await board.setOrientation(board.getOrientation() === "w" ? "b" : "w");
+	renderUsers();
 	classify();
 }
 
-$("#go-back")?.addEventListener("click", goBack);
-$("#go-forward")?.addEventListener("click", goForward);
-$("#flip-board")?.addEventListener("click", toggleOrientation);
-$("#first-move")?.addEventListener("click", () => {
+UI.controls.goBack.addEventListener("click", goBack);
+UI.controls.goForward.addEventListener("click", goForward);
+UI.controls.flipBoard.addEventListener("click", flipBoard);
+UI.controls.firstMove.addEventListener("click", () => {
 	navigateToNode(data.stateTree.root)
 })
-$("#last-move")?.addEventListener("click", () => {
+UI.controls.lastMove.addEventListener("click", () => {
 	navigateToNode(data.stateTree.lastNode)
 })
 
@@ -388,7 +422,7 @@ engine.postMessage("uci");
 engine.postMessage("isready");
 
 
-$("#import-game")?.addEventListener("click", async () => {
+UI.controls.importGame.addEventListener("click", async () => {
 	const { value: input, isConfirmed, isDenied, dismiss } = await Swal.fire({
 		title: "Import Game",
 		input: "text",

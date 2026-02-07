@@ -42,20 +42,24 @@ import {
 		</text>
 	</svg>
 
-	<div
-		class="max-w-125 w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-170"
-		id="board"
-	>
+	<div id="chessboard" class="flex flex-col items-start">
+		<span id="top-user"></span>
+		<div
+			class="max-w-125 w-[calc(100vw-40px)] sm:max-w-[320px] lg:max-w-170"
+			id="board"
+		>
+		</div>
+		<span id="bottom-user"></span>
 	</div>
 
 	<div
-		class="bg-slate-300/50 flex flex-col gap-4 px-16 w-fit min-w-100 py-4 font-sans glass-card"
+		class="transition-all duration-200 ease-in-out bg-slate-300/50 flex flex-col gap-4 px-16 w-fit min-w-100 max-w-500 py-4 font-sans glass-card"
 	>
-		<div class="info text-2xl" id="eval">Eval: 0.00</div>
+		<span class="info text-2xl" id="progress">Analysis not started.</span>
 
-		<div class="info" id="classification"></div>
+		<span class="info" id="classification"></span>
 
-		<div class="info" id="opening"></div>
+		<span class="info" id="opening"></span>
 
 		<section
 			id="controls"
