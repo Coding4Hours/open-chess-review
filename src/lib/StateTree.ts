@@ -59,6 +59,7 @@ class StateTreeNode {
 
 class StateTree {
 	root: StateTreeNode;
+	lastNode: StateTreeNode;
 	currentNode: StateTreeNode;
 	evaluations: Map<string, Evaluation>;
 	mainLineFens: string[] = [];
@@ -83,6 +84,7 @@ class StateTree {
 		const opening = openings[fenKey] || "Starting Position";
 		this.root = new StateTreeNode(initialFen, { opening });
 		this.currentNode = this.root;
+		this.lastNode = this.root;
 
 		if (options.pgn && this.metadata) {
 			const parsed = (Array.isArray(this.metadata) ? this.metadata[0] : this.metadata) as ParseTree;
@@ -130,6 +132,7 @@ class StateTree {
 		const newNode = new StateTreeNode(fen, { move, moveDetails, parent: this.currentNode, opening });
 		this.currentNode.addChild(newNode);
 		this.currentNode = newNode;
+		this.lastNode = newNode;
 		return newNode;
 	}
 

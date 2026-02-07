@@ -377,6 +377,12 @@ async function toggleOrientation() {
 $("#go-back")?.addEventListener("click", goBack);
 $("#go-forward")?.addEventListener("click", goForward);
 $("#flip-board")?.addEventListener("click", toggleOrientation);
+$("#first-move")?.addEventListener("click", () => {
+	navigateToNode(data.stateTree.root)
+})
+$("#last-move")?.addEventListener("click", () => {
+	navigateToNode(data.stateTree.lastNode)
+})
 
 engine.postMessage("uci");
 engine.postMessage("isready");

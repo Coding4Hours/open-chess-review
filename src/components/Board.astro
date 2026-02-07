@@ -1,5 +1,12 @@
 ---
-import { SkipBack, SkipForward, RotateCw, Import } from "@lucide/astro";
+import {
+	SkipBack,
+	SkipForward,
+	RotateCw,
+	Import,
+	ChevronFirst,
+	ChevronLast,
+} from "@lucide/astro";
 ---
 
 <div class="flex flex-wrap gap-5 mb-5 items-start">
@@ -57,11 +64,17 @@ import { SkipBack, SkipForward, RotateCw, Import } from "@lucide/astro";
 			<button id="flip-board">
 				<RotateCw />
 			</button>
+			<button id="first-move">
+				<ChevronFirst />
+			</button>
 			<button id="go-back">
 				<SkipBack />
 			</button>
 			<button id="go-forward">
 				<SkipForward />
+			</button>
+			<button id="last-move">
+				<ChevronLast />
 			</button>
 			<button id="import-game">
 				<Import />
