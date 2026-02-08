@@ -1,4 +1,4 @@
-# [1.0.0](https://github.com/Coding4Hours/open-chess-review/compare/v0.1.0...v1.0.0) (2026-02-07)
+# [2.0.0](https://github.com/Coding4Hours/open-chess-review/compare/v0.1.0...v2.0.0) (2026-02-08)
 
 
 ### Bug Fixes
@@ -20,6 +20,7 @@
 * first move last move ([2634a7d](https://github.com/Coding4Hours/open-chess-review/commit/2634a7dcc6a76e8cbfd526c1d5dd418f34efa898))
 * import game ([fa42e9a](https://github.com/Coding4Hours/open-chess-review/commit/fa42e9a584ec0d2156479596a73c6187a70c2a98))
 * **import:** import pgn ([8439490](https://github.com/Coding4Hours/open-chess-review/commit/84394900344d5b5e84e709529942bf283ffa070e))
+* move accuracy ([4b14fce](https://github.com/Coding4Hours/open-chess-review/commit/4b14fce60a4905b7d193268fb4015d4074b144ce))
 * move list ([253c6d6](https://github.com/Coding4Hours/open-chess-review/commit/253c6d6990296665359572b1960a277bfbc30472))
 * names and ratings ([5a93f7d](https://github.com/Coding4Hours/open-chess-review/commit/5a93f7d2ec4d1c67b598fb5808a3666bc48b8196))
 * **styles:** added a better animation ([420265b](https://github.com/Coding4Hours/open-chess-review/commit/420265bbeab788335e783998672664dc73ad9044))
