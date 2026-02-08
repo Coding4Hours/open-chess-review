@@ -171,7 +171,6 @@ function init(pgn: string) {
 
 	board.setPosition(game.fen(), false);
 
-	console.log(data.stateTree.metadata)
 	renderUsers()
 	renderMoveTree();
 	updateEngine();
@@ -252,7 +251,6 @@ function classify() {
 	board.removeMarkers();
 
 	const currentNode = data.stateTree.currentNode;
-	data.stateTree.classifyNode(currentNode);
 
 	const currentFen = game.fen();
 	const evalData = data.stateTree.getEvaluation(currentFen);

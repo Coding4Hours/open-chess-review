@@ -7,6 +7,8 @@ import openingsData from "../data/openings.json";
 import type { Evaluation } from "../types/Evaluation";
 import type { Classification } from "../types/Classification";
 
+
+
 const openings = openingsData as Record<string, string>;
 
 class StateTreeNode {
@@ -16,9 +18,12 @@ class StateTreeNode {
 	evaluation?: Evaluation;
 	opening?: string;
 	classification?: Classification;
+	accuracy?: number;
+	winrate?: number;
 	children: StateTreeNode[];
 	parent: StateTreeNode | null;
 	thoughts: StateTreeNode[]; // will be used for custom branching moves ("thoughts")
+	pgn?: string;
 
 	constructor(
 		fen: string,
@@ -41,7 +46,7 @@ class StateTreeNode {
 		this.children = [];
 		this.parent = options.parent ?? null;
 		this.thoughts = [];
-
+		this.pgn = options.pgn;
 	}
 
 	addChild(node: StateTreeNode): StateTreeNode {
@@ -62,12 +67,14 @@ class StateTree {
 	lastNode: StateTreeNode;
 	currentNode: StateTreeNode;
 	evaluations: Map<string, Evaluation>;
+	fenToNode: Map<string, StateTreeNode>;
 	mainLineFens: string[] = [];
 
 	metadata?: ParseTree | ParseTree[] | PgnMove[] | Tags | null;
 
 	constructor(pgn?: string) {
 		this.evaluations = new Map();
+		this.fenToNode = new Map();
 		let fen = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 		let parsed: ParseTree | undefined;
 
@@ -78,13 +85,18 @@ class StateTree {
 		}
 
 		this.root = this.currentNode = this.lastNode = new StateTreeNode(fen, {
-			opening: openings[fen.split(" ")[0]] || "Starting Position"
+			opening: openings[fen.split(" ")[0]] || "Starting Position",
+			pgn
 		});
 
-		if (parsed?.moves) this.loadMoves(parsed.moves, this.root);
+		this.fenToNode.set(fen, this.root);
+
+		if (parsed?.moves)
+			this.loadMoves(parsed.moves, this.root);
 	}
 
-	private loadMoves(pgnMoves: PgnMove[], startNode: StateTreeNode): StateTreeNode {
+
+	loadMoves(pgnMoves: PgnMove[], startNode: StateTreeNode): StateTreeNode {
 		let currentChess = new Chess(startNode.fen);
 		let parentNode = startNode;
 		let lastMainLineNode = startNode;
@@ -119,10 +131,17 @@ class StateTree {
 
 		const fenKey = fen.split(" ")[0];
 		const opening = openings[fenKey] || this.currentNode.opening;
-		const newNode = new StateTreeNode(fen, { move, moveDetails, parent: this.currentNode, opening });
+		const newNode = new StateTreeNode(fen, {
+			move,
+			moveDetails,
+			parent: this.currentNode,
+			opening
+		});
 		this.currentNode.addChild(newNode);
 		this.currentNode = newNode;
 		this.lastNode = newNode;
+		this.fenToNode.set(fen, newNode);
+		this.classifyNode(newNode);
 		return newNode;
 	}
 
@@ -150,6 +169,9 @@ class StateTree {
 
 	updateEvaluation(fen: string, evaluation: Evaluation) {
 		this.evaluations.set(fen, evaluation);
+		const node = this.fenToNode.get(fen);
+		if (node)
+			node.evaluation = evaluation;
 	}
 
 	getEvaluation(fen: string): Evaluation | undefined {
@@ -195,6 +217,8 @@ class StateTree {
 		this.currentNode = this.root;
 		return this.root;
 	}
+
+
 
 }
 

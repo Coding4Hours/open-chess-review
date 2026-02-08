@@ -26,6 +26,7 @@ function getExpectedPoints(evaluation: Evaluation) {
 	}
 }
 
+
 export function classifyMove(
 	evalBefore: Evaluation,
 	evalAfter: Evaluation,
