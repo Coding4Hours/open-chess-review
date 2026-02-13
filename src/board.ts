@@ -11,14 +11,8 @@ import { StateTree, type StateTreeNode } from "@/lib/StateTree";
 import { getScore } from "@/move-classification";
 
 
-import moveMove from "@/data/audio/move.mp3";
-import moveCheck from "@/data/audio/check.mp3";
-import moveCapture from "@/data/audio/capture.mp3";
-import moveCastle from "@/data/audio/castle.mp3";
-import movePromote from "@/data/audio/promote.mp3";
-import moveGameend from "@/data/audio/gameend.mp3";
-
-
+import { AudioManager } from "@/lib/AudioManager";
+import { Engine } from "@/lib/Engine";
 import Swal from 'sweetalert2'
 
 const game = new Chess();
@@ -145,7 +139,7 @@ function navigateToNode(node: StateTreeNode) {
 	data.currentIndex = data.moveHistory.length - 1;
 
 	if (node.move) {
-		playSound(node.move);
+		AudioManager.playSound(node.move, game);
 	}
 
 	classify();
@@ -177,11 +171,10 @@ function init(pgn: string) {
 }
 
 
-const engine = new Worker("/stockfish/stockfish.js");
-(window as any).engine = engine;
+const chessEngine = new Engine();
+(window as any).engine = chessEngine;
 
-engine.onmessage = (event) => {
-	const message = event.data;
+chessEngine.setMessageHandler((message) => {
 	if (typeof message !== "string") return;
 
 	if (data.stateTree.mainLineFens.length === 0) return;
@@ -234,16 +227,17 @@ engine.onmessage = (event) => {
 			return;
 		}
 	}
-};
+});
 
 function updateEngine() {
 	if (data.stateTree.mainLineFens.length === 0) return;
 	const fen = data.stateTree.mainLineFens[data.analysisIndex];
-	engine.postMessage("ucinewgame");
-	engine.postMessage(`position fen ${fen}`);
-	engine.postMessage(
-		`go depth ${data.depth} movetime ${data.movetime} Threads ${data.threads} MultiPV ${data.multipv}`,
-	);
+	chessEngine.analyze(fen, {
+		depth: Number(data.depth),
+		movetime: Number(data.movetime),
+		threads: Number(data.threads),
+		multipv: Number(data.multipv)
+	});
 }
 
 function classify() {
@@ -342,31 +336,6 @@ function classify() {
 	}
 }
 
-const moveSounds = {
-	move: moveMove,
-	check: moveCheck,
-	capture: moveCapture,
-	castle: moveCastle,
-	promote: movePromote,
-	gameEnd: moveGameend
-};
-
-
-function playSound(latestMove: string) {
-	if (game.isGameOver()) {
-		new Audio(moveSounds.gameEnd).play();
-	}
-	if (latestMove == "O-O" || latestMove == "O-O-O")
-		new Audio(moveSounds.castle).play();
-	else if (latestMove.endsWith("+") || latestMove.endsWith("#"))
-		new Audio(moveSounds.check).play();
-	else if (latestMove.includes("="))
-		new Audio(moveSounds.promote).play();
-	else if (latestMove.includes("x"))
-		new Audio(moveSounds.capture).play();
-	else
-		new Audio(moveSounds.move).play();
-}
 
 function goBack() {
 	const parent = data.stateTree.currentNode.parent;
@@ -416,8 +385,6 @@ UI.controls.lastMove.addEventListener("click", () => {
 	navigateToNode(data.stateTree.lastNode)
 })
 
-engine.postMessage("uci");
-engine.postMessage("isready");
 
 
 UI.controls.importGame.addEventListener("click", async () => {
