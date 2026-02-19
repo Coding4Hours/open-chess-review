@@ -24,7 +24,7 @@ label {
 }
 
 .glass-card {
-  @apply rounded-lg border backdrop-blur-lg border-white/30 shadow-sm;
+  @apply rounded-lg border backdrop-blur-lg border-white/30;
 }
 
 .lucide {

@@ -26,6 +26,7 @@ let data = {
 	movetime: localStorage.getItem("movetime") || 1000,
 	threads: localStorage.getItem("threads") || 11,
 	multipv: localStorage.getItem("multipv") || 2,
+	engine: localStorage.getItem("engine") || "stockfish18",
 	stateTree: new StateTree(),
 	engineState: "off" as "on" | "off",
 	analysisIndex: 0,
@@ -55,8 +56,38 @@ const UI = {
 		firstMove: $("#first-move") as HTMLButtonElement,
 		lastMove: $("#last-move") as HTMLButtonElement,
 		importGame: $("#import-game") as HTMLButtonElement
+	},
+	settings: {
+		engine: $("#setting-engine") as HTMLSelectElement,
+		depth: $("#setting-depth") as HTMLInputElement,
+		movetime: $("#setting-movetime") as HTMLInputElement,
+		threads: $("#setting-threads") as HTMLInputElement,
+		multipv: $("#setting-multipv") as HTMLInputElement
 	}
 };
+
+const setupSettings = () => {
+	const { settings } = UI;
+	settings.engine.value = data.engine as string;
+	settings.depth.value = data.depth as string;
+	settings.movetime.value = data.movetime as string;
+	settings.threads.value = data.threads as string;
+	settings.multipv.value = data.multipv as string;
+
+	Object.entries(settings).forEach(([key, el]) => {
+		el.addEventListener("change", (e) => {
+			const value = (e.target as HTMLInputElement | HTMLSelectElement).value;
+			(data as any)[key] = value;
+			localStorage.setItem(key, value);
+
+			if (key === "engine") {
+				window.location.reload();
+			}
+		});
+	});
+};
+
+setupSettings();
 
 const board = new Chessboard(UI.board, {
 	position: game.fen(),
@@ -171,7 +202,7 @@ function init(pgn: string) {
 }
 
 
-const chessEngine = new Engine();
+const chessEngine = new Engine(data.engine);
 (window as any).engine = chessEngine;
 
 chessEngine.setMessageHandler((message) => {

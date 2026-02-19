@@ -52,42 +52,104 @@ import {
 		<span id="bottom-user"></span>
 	</div>
 
-	<div
-		class="transition-all duration-200 ease-in-out bg-slate-300/50 flex flex-col gap-4 px-16 w-fit min-w-100 max-w-500 py-4 font-sans glass-card"
-	>
-		<span class="info text-2xl" id="progress">Analysis not started.</span>
-
-		<span class="info" id="classification"></span>
-
-		<span class="info" id="opening"></span>
-
-		<section
-			id="controls"
-			class="flex justify-center gap-2 rounded-md bg-slate-400/30 px-4 py-2 w-fit mx-auto"
+	<div class="flex flex-col gap-4">
+		<div
+			class="transition-all duration-200 ease-in-out bg-slate-300/50 flex flex-col gap-4 px-8 w-fit min-w-100 max-w-500 py-4 font-sans glass-card"
 		>
-			<button id="flip-board">
-				<RotateCw />
-			</button>
-			<button id="first-move">
-				<ChevronFirst />
-			</button>
-			<button id="go-back">
-				<SkipBack />
-			</button>
-			<button id="go-forward">
-				<SkipForward />
-			</button>
-			<button id="last-move">
-				<ChevronLast />
-			</button>
-			<button id="import-game">
-				<Import />
-			</button>
-		</section>
+			<span class="info text-2xl" id="progress">Analysis not started.</span>
 
-		<section id="move-tree">
-			<div id="moves"></div>
-		</section>
+			<span class="info" id="classification"></span>
+
+			<span class="info" id="opening"></span>
+
+			<section
+				id="controls"
+				class="flex justify-center gap-2 rounded-md bg-slate-400/30 px-4 py-2 w-fit mx-auto"
+			>
+				<button id="flip-board">
+					<RotateCw />
+				</button>
+				<button id="first-move">
+					<ChevronFirst />
+				</button>
+				<button id="go-back">
+					<SkipBack />
+				</button>
+				<button id="go-forward">
+					<SkipForward />
+				</button>
+				<button id="last-move">
+					<ChevronLast />
+				</button>
+				<button id="import-game">
+					<Import />
+				</button>
+			</section>
+
+			<section id="move-tree">
+				<div id="moves"></div>
+			</section>
+		</div>
+		<div
+			class="transition-all duration-200 ease-in-out bg-slate-300/50 flex flex-col gap-4 px-8 w-fit min-w-80 py-4 font-sans glass-card mx-auto"
+		>
+			<h2 class="text-xl font-bold border-b border-slate-400/30 pb-2">
+				Settings
+			</h2>
+
+			<div class="flex flex-col gap-3 text-left">
+				<label class="flex flex-col gap-1">
+					<span class="text-xs font-semibold uppercase opacity-60">Engine</span>
+					<select
+						id="setting-engine"
+						class="bg-slate-400/20 rounded p-1 text-sm"
+					>
+						<option value="stockfish18">Stockfish 18</option>
+						<option value="stockfish18_lite">Stockfish 18 Lite</option>
+					</select>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-xs font-semibold uppercase opacity-60">Depth</span>
+					<input
+						type="number"
+						id="setting-depth"
+						class="bg-slate-400/20 rounded p-1 text-sm outline-none"
+					/>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-xs font-semibold uppercase opacity-60"
+						>Move Time (ms)</span
+					>
+					<input
+						type="number"
+						id="setting-movetime"
+						class="bg-slate-400/20 rounded p-1 text-sm outline-none"
+					/>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-xs font-semibold uppercase opacity-60">Threads</span
+					>
+					<input
+						type="number"
+						id="setting-threads"
+						class="bg-slate-400/20 rounded p-1 text-sm outline-none"
+					/>
+				</label>
+
+				<label class="flex flex-col gap-1">
+					<span class="text-xs font-semibold uppercase opacity-60">MultiPV</span
+					>
+					<input
+						type="number"
+						id="setting-multipv"
+						class="bg-slate-400/20 rounded p-1 text-sm outline-none"
+					/>
+				</label>
+			</div>
+		</div>
 	</div>
 </div>
 

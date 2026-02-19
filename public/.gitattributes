@@ -1,0 +1,2 @@
+stockfish18 filter=lfs diff=lfs merge=lfs -text
+stockfish18_lite/ filter=lfs diff=lfs merge=lfs -text

@@ -8,6 +8,7 @@
 		"dist"
 	],
 	"compilerOptions": {
+		"lib": "ESNEXT",
 		"strict": true,
 		"paths": {
 			"@/*": [

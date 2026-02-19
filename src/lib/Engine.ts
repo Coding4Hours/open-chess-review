@@ -16,9 +16,11 @@ type EngineMessageHandler = (message: string) => void;
 export class Engine {
 	private worker: Worker;
 	private onMessageCallback: EngineMessageHandler | null = null;
+	private engine: string | null;
 
-	constructor() {
-		this.worker = new Worker("/stockfish/stockfish.js");
+	constructor(engine: string) {
+		this.engine = engine;
+		this.worker = new Worker(`/${this.engine}/stockfish.js`);
 		this.worker.onmessage = (event) => {
 			if (this.onMessageCallback) {
 				this.onMessageCallback(event.data);
